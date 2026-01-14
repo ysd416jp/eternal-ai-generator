@@ -25,6 +25,13 @@ st.set_page_config(page_title="EternalAI Image Generator", layout="wide")
 st.title("🎨 EternalAI Image Generator")
 st.markdown("Enter a prompt and AI will generate an image for you.")
 
+# Get prompt from URL parameter (from translation site)
+query_params = st.query_params
+url_prompt = query_params.get("prompt", None)
+
+if url_prompt:
+    st.success("✅ 翻訳サイトからプロンプトを受け取りました！")
+
 api_key = load_api_key()
 if not api_key:
     st.error("API key not found")
@@ -61,7 +68,7 @@ with col1:
     prompt_text = st.text_area(
         "Prompt (English)", 
         height=150, 
-        value="A beautiful Japanese woman in her 30s, wearing a white coat",
+        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 30s, wearing a white coat",
         help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
     )
     
