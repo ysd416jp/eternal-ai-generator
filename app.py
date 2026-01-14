@@ -30,11 +30,40 @@ if not api_key:
     st.error("API key not found")
     st.stop()
 
+# Style Presets
+STYLE_PRESETS = {
+    "None (カスタムのみ)": "",
+    "📸 実写・ポートレート": "photorealistic, professional portrait photography, natural lighting, shot on Canon EOS R5, 85mm f/1.2, natural skin texture, realistic features, shallow depth of field, soft studio lighting, lifelike",
+    "🎬 映画風": "cinematic photography, film grain, anamorphic lens, natural color grading, shot on ARRI Alexa, dramatic lighting, movie still, cinematic composition",
+    "📷 ストリート写真": "candid street photography, natural lighting, realistic atmosphere, documentary style, shot on Leica M10, 35mm lens, photojournalism, authentic moment",
+    "💼 商業写真": "commercial photography, professional studio lighting, high resolution, sharp focus, advertising quality, clean background, product photography style",
+    "🌆 風景写真": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range",
+    "🎨 アート写真": "fine art photography, creative lighting, artistic composition, professional color grading, gallery quality, expressive mood"
+}
+
 # Input Area
 col1, col2 = st.columns([1, 1])
 with col1:
     st.info("📝 Describe the image you want to generate (in English)")
-    prompt_text = st.text_area("Prompt (English)", height=150, value="A futuristic city with flying cars, cinematic lighting")
+    
+    # Style preset selector
+    selected_style = st.selectbox(
+        "🎨 スタイルプリセット",
+        options=list(STYLE_PRESETS.keys()),
+        help="写真スタイルを選択してください。自動的にプロンプトに追加されます。"
+    )
+    
+    # Show selected style description
+    if selected_style != "None (カスタムのみ)":
+        with st.expander("ℹ️ 選択中のスタイル詳細"):
+            st.code(STYLE_PRESETS[selected_style])
+    
+    prompt_text = st.text_area(
+        "Prompt (English)", 
+        height=150, 
+        value="A beautiful Japanese woman in her 30s, wearing a white coat",
+        help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
+    )
     
     # Image upload (reference image)
     st.markdown("---")
@@ -55,9 +84,19 @@ if generate_btn:
     # 1. Send request (POST)
     url_create = "https://open.eternalai.org/creative-ai/image"
     
+    # Combine prompt with style preset
+    final_prompt = prompt_text
+    if selected_style != "None (カスタムのみ)":
+        final_prompt = f"{prompt_text}, {STYLE_PRESETS[selected_style]}"
+    
+    # Show final prompt
+    with col2:
+        st.info("📝 最終プロンプト:")
+        st.text_area("Combined Prompt", value=final_prompt, height=150, disabled=True)
+    
     # Payload configuration (without lora_config)
     payload = {
-        "messages": [{"role": "user", "content": [{"type": "text", "text": prompt_text}]}],
+        "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
         "type": "new"
     }
     
