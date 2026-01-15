@@ -81,7 +81,7 @@ with col1:
     
     model_options = {
         "Qwen Image Edit2509": "Qwen-Image-Edit-2509",
-        "Qwen Image Edit2509": "qwen-image-edit-2511",
+        "Qwen Image Edit2511": "qwen-image-edit-2511",
         "Flux 2 Pro": "Flux-2-pro",
         "Nano Banana": "gemini-3-pro-image-preview",
         "Grok4": "grok-4-1-fast-reasoning",
@@ -100,7 +100,8 @@ with col1:
     
     # Show model info
     model_descriptions = {
-        "Qwen Image Edit": "🎨 画像編集特化型。細かい修正やアップスケールに最適",
+        "Qwen Image Edit2509": "🎨 画像編集特化型。細かい修正やアップスケールに最適",
+        "Qwen Image Edit2511": "最新qwen",
         "Flux 2 Pro": "⚡ 高速・高品質。バランスの取れた生成",
         "Nano Banana": "🍌 最も柔軟で高品質。制限が少なく創造的な生成が可能",
         "Grok4": "最新最速grok",
