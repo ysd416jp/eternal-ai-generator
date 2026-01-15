@@ -119,7 +119,15 @@ if generate_btn:
     progress_bar = st.progress(0)
     
     # 1. Send request (POST)
-    url_create = "https://open.eternalai.org/creative-ai/image"
+    # Use different endpoint for Image-to-Image
+    if uploaded_file is not None:
+        # V1 API for Image-to-Image (サポート推奨)
+        url_create = "https://api.eternalai.org/v1/image/generate"
+        use_v1_api = True
+    else:
+        # Legacy API for Text-to-Image (動作確認済み)
+        url_create = "https://open.eternalai.org/creative-ai/image"
+        use_v1_api = False
     
     # Combine prompt with style preset
     final_prompt = prompt_text
@@ -162,16 +170,25 @@ if generate_btn:
             st.stop()
     
     # Payload configuration
-    payload = {
-        "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
-        "type": "new"
-    }
-    
-    # Add image fields for Image-to-Image mode
-    if image_base64:
-        payload["image"] = image_base64
-        payload["denoising_strength"] = denoising_strength
-        payload["num_inference_steps"] = 30
+    if use_v1_api:
+        # V1 API format (Image-to-Image)
+        payload = {
+            "prompt": final_prompt,
+            "model": "Nano Banana",
+            "image": image_base64,
+            "denoising_strength": denoising_strength,
+            "num_inference_steps": 30
+        }
+    else:
+        # Legacy API format (Text-to-Image)
+        payload = {
+            "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
+            "type": "new"
+        }
+        if image_base64:
+            payload["image"] = image_base64
+            payload["denoising_strength"] = denoising_strength
+            payload["num_inference_steps"] = 30
     
     headers = {
         'x-api-key': api_key,
@@ -188,16 +205,29 @@ if generate_btn:
         
         response = requests.post(url_create, headers=headers, json=payload)
         
+        # Show response for debugging
+        with col2:
+            st.info(f"📡 Response Status: {response.status_code}")
+            if response.status_code != 200:
+                st.error(f"Response: {response.text}")
+        
         if response.status_code == 200:
             data = response.json()
-            request_id = data.get("request_id")
+            request_id = data.get("request_id") or data.get("id")
             
             with col2:
                 st.success(f"✅ Request sent! ID: {request_id}")
+                st.json(data)  # Show full response
             
-            # UUID format uses path parameter
-            check_url_base = "https://open.eternalai.org/poll-result"
-            st.caption("ℹ️ Generating image... (typically takes 45s - 1min)")
+            # Different polling for v1 API
+            if use_v1_api:
+                # V1 API polling
+                check_url_base = "https://api.eternalai.org/v1/image/result"
+                st.caption("ℹ️ Generating image with V1 API... (typically takes 45s - 1min)")
+            else:
+                # Legacy API polling
+                check_url_base = "https://open.eternalai.org/poll-result"
+                st.caption("ℹ️ Generating image... (typically takes 45s - 1min)")
             
             # 2. Polling loop (max 5 minutes)
             status_text.text("Processing... (max 5 minutes)")
@@ -208,9 +238,13 @@ if generate_btn:
                 current_val = int(min((i + 1) / 40 * 100, 95))
                 progress_bar.progress(current_val)
                 
-                # Path parameter: /poll-result/{id}
-                check_url = f"{check_url_base}/{request_id}"
-                check_res = requests.get(check_url, headers={'x-api-key': api_key})
+                # Path parameter or query parameter depending on API
+                if use_v1_api:
+                    check_url = f"{check_url_base}?request_id={request_id}"
+                    check_res = requests.get(check_url, headers={'api-key': api_key})
+                else:
+                    check_url = f"{check_url_base}/{request_id}"
+                    check_res = requests.get(check_url, headers={'x-api-key': api_key})
                 
                 if check_res.status_code == 200:
                     res_data = check_res.json()
