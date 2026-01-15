@@ -80,10 +80,13 @@ with col1:
     st.info("🤖 生成モデル選択")
     
     model_options = {
-        "Qwen Image Edit": "Qwen-Image-Edit-2509",
+        "Qwen Image Edit2509": "Qwen-Image-Edit-2509",
+        "Qwen Image Edit2509": "qwen-image-edit-2511",
         "Flux 2 Pro": "Flux-2-pro",
         "Nano Banana": "gemini-3-pro-image-preview",
-        "Seedream 4.5": "Seedream-4.5"
+        "Grok4": "grok-4-1-fast-reasoning",
+        "Grok2": "grok-2-image-1212",
+        "Seedream 4.5": "seedream-4-5-251128"
     }
     
     selected_model_name = st.selectbox(
