@@ -82,7 +82,7 @@ with col1:
     model_options = {
         "Qwen Image Edit": "Qwen-Image-Edit-2509",
         "Flux 2 Pro": "Flux-2-pro",
-        "Nano Banana": "Nano Banana",
+        "Nano Banana": "gemini-3-pro-image-preview",
         "Seedream 4.5": "Seedream-4.5"
     }
     
