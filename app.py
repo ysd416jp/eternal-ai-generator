@@ -75,28 +75,6 @@ with col1:
         help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
     )
     
-    # 🧪 EXPERIMENTAL: Model selection for testing
-    st.markdown("---")
-    st.info("🧪 実験的機能：モデル選択（テスト中）")
-    
-    model_test_options = {
-        "デフォルト（指定なし）": None,
-        "Nano Banana Pro ✅": "gemini-3-pro-image-preview",
-        "Nano Banana（推測）": "gemini-2.5-flash-image",
-        "Qwen Image Edit（推測）": "Qwen/Qwen-Image-2512"
-    }
-    
-    selected_model_display = st.selectbox(
-        "テストするモデルを選択",
-        options=list(model_test_options.keys()),
-        help="✅ = 動作確認済み。他は推測値です。"
-    )
-    
-    selected_model_id = model_test_options[selected_model_display]
-    
-    if selected_model_display != "デフォルト（指定なし）":
-        st.caption(f"📝 使用するモデルID: `{selected_model_id}`")
-    
     # Image upload (reference image) - Image-to-Image mode
     st.markdown("---")
     st.info("🖼️ Reference Image (Image-to-Image)")
@@ -186,35 +164,17 @@ if generate_btn:
             st.stop()
     
     # Payload configuration (Legacy API format)
-    # Build content array
-    content_items = [
-        {
-            "type": "text",
-            "text": final_prompt
-        }
-    ]
-    
-    # Add image to content array for Image-to-Image mode (following official docs)
-    if image_base64:
-        content_items.append({
-            "type": "image_url",
-            "image_url": {
-                "url": image_base64,
-                "filename": "input.jpg"
-            }
-        })
-    
     payload = {
-        "messages": [{
-            "role": "user",
-            "content": content_items
-        }],
-        "type": "edit" if image_base64 else "new"
+        "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
     }
     
-    # Add model_id if selected
-    if selected_model_id is not None:
-        payload["model_id"] = selected_model_id
+    # Add image fields for Image-to-Image mode
+    if image_base64:
+        payload["type"] = "edit"  # Change to "edit" mode for Image-to-Image
+        payload["image"] = image_base64
+        payload["strength"] = denoising_strength
+    else:
+        payload["type"] = "new"  # "new" for Text-to-Image
     
     headers = {
         'x-api-key': api_key,
@@ -245,8 +205,8 @@ if generate_btn:
                 st.success(f"✅ Request sent! ID: {request_id}")
                 st.json(data)  # Show full response
             
-            # Legacy API polling (correct endpoint with /creative-ai/)
-            check_url_base = "https://open.eternalai.org/creative-ai/poll-result"
+            # Legacy API polling
+            check_url_base = "https://open.eternalai.org/poll-result"
             
             if image_base64:
                 st.caption("ℹ️ Generating image (Image-to-Image mode)... (typically takes 45s - 1min)")
