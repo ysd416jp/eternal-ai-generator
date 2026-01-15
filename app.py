@@ -75,6 +75,36 @@ with col1:
         help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
     )
     
+    # Model selection
+    st.markdown("---")
+    st.info("🤖 生成モデル選択")
+    
+    model_options = {
+        "Qwen Image Edit": "Qwen-Image-Edit-2509",
+        "Flux 2 Pro": "Flux-2-pro",
+        "Nano Banana": "Nano Banana",
+        "Seedream 4.5": "Seedream-4.5"
+    }
+    
+    selected_model_name = st.selectbox(
+        "モデルを選択",
+        options=list(model_options.keys()),
+        index=2,  # Default: Nano Banana
+        help="モデルによって生成結果が異なります。Nano Banana が最も柔軟で高品質です。"
+    )
+    
+    selected_model_id = model_options[selected_model_name]
+    
+    # Show model info
+    model_descriptions = {
+        "Qwen Image Edit": "🎨 画像編集特化型。細かい修正やアップスケールに最適",
+        "Flux 2 Pro": "⚡ 高速・高品質。バランスの取れた生成",
+        "Nano Banana": "🍌 最も柔軟で高品質。制限が少なく創造的な生成が可能",
+        "Seedream 4.5": "🌟 最新モデル。高解像度とリアルな表現が特徴"
+    }
+    
+    st.caption(model_descriptions[selected_model_name])
+    
     # Image upload (reference image) - Image-to-Image mode
     st.markdown("---")
     st.info("🖼️ Reference Image (Image-to-Image)")
@@ -133,12 +163,16 @@ if generate_btn:
         st.info("📝 最終プロンプト:")
         st.text_area("Combined Prompt", value=final_prompt, height=150, disabled=True)
         
-        # Show Image-to-Image info if image uploaded
+        # Show generation mode and model info
         if uploaded_file is not None:
             st.info("🖼️ Image-to-Image モード")
+            st.caption(f"モデル: {selected_model_name}")
             st.caption(f"変更度: {denoising_strength}")
             st.caption(f"ファイル名: {uploaded_file.name}")
             st.caption(f"ファイルサイズ: {uploaded_file.size / 1024:.2f} KB")
+        else:
+            st.info("📝 Text-to-Image モード")
+            st.caption(f"モデル: {selected_model_name}")
     
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
@@ -164,17 +198,32 @@ if generate_btn:
             st.stop()
     
     # Payload configuration (Legacy API format)
-    payload = {
-        "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
-    }
+    # Build content array
+    content_items = [
+        {
+            "type": "text",
+            "text": final_prompt
+        }
+    ]
     
-    # Add image fields for Image-to-Image mode
+    # Add image to content array for Image-to-Image mode (following official docs)
     if image_base64:
-        payload["type"] = "edit"  # Change to "edit" mode for Image-to-Image
-        payload["image"] = image_base64
-        payload["strength"] = denoising_strength
-    else:
-        payload["type"] = "new"  # "new" for Text-to-Image
+        content_items.append({
+            "type": "image_url",
+            "image_url": {
+                "url": image_base64,
+                "filename": "input.jpg"
+            }
+        })
+    
+    payload = {
+        "messages": [{
+            "role": "user",
+            "content": content_items
+        }],
+        "type": "edit" if image_base64 else "new",
+        "model_id": selected_model_id  # Add model selection
+    }
     
     headers = {
         'x-api-key': api_key,
@@ -205,8 +254,8 @@ if generate_btn:
                 st.success(f"✅ Request sent! ID: {request_id}")
                 st.json(data)  # Show full response
             
-            # Legacy API polling
-            check_url_base = "https://open.eternalai.org/poll-result"
+            # Legacy API polling (correct endpoint with /creative-ai/)
+            check_url_base = "https://open.eternalai.org/creative-ai/poll-result"
             
             if image_base64:
                 st.caption("ℹ️ Generating image (Image-to-Image mode)... (typically takes 45s - 1min)")
