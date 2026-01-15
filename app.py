@@ -75,37 +75,27 @@ with col1:
         help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
     )
     
-    # Model selection
+    # 🧪 EXPERIMENTAL: Model selection for testing
     st.markdown("---")
-    st.info("🤖 生成モデル選択")
+    st.info("🧪 実験的機能：モデル選択（テスト中）")
     
-    model_options = {
-        "Qwen Image 2.5": "qwen-2.5-72b-instruct",
-        "Qwen Image Edit2511": "qwen-image-edit-2511",
-        "Flux 2 Pro": "flux-2-Pro",
-        "Nano Banana": "gemini-3-pro-image-preview",
-        "Seedream 4.5": "seedream-4-5-251128"
+    model_test_options = {
+        "デフォルト（指定なし）": None,
+        "Nano Banana Pro ✅": "gemini-3-pro-image-preview",
+        "Nano Banana（推測）": "gemini-2.5-flash-image",
+        "Qwen Image Edit（推測）": "Qwen-Image-Edit-2509"
     }
     
-    selected_model_name = st.selectbox(
-        "モデルを選択",
-        options=list(model_options.keys()),
-        index=2,  # Default: Nano Banana
-        help="モデルによって生成結果が異なります。Nano Banana が最も柔軟で高品質です。"
+    selected_model_display = st.selectbox(
+        "テストするモデルを選択",
+        options=list(model_test_options.keys()),
+        help="✅ = 動作確認済み。他は推測値です。"
     )
     
-    selected_model_id = model_options[selected_model_name]
+    selected_model_id = model_test_options[selected_model_display]
     
-    # Show model info
-    model_descriptions = {
-        "Qwen Image 2.5": "🎨 画像編集特化型。細かい修正やアップスケールに最適",
-        "Qwen Image Edit2511": "最新qwen",
-        "Flux 2 Pro": "⚡ 高速・高品質。バランスの取れた生成",
-        "Nano Banana": "🍌 最も柔軟で高品質。制限が少なく創造的な生成が可能",
-        "Seedream 4.5": "🌟 最新モデル。高解像度とリアルな表現が特徴"
-    }
-    
-    st.caption(model_descriptions[selected_model_name])
+    if selected_model_display != "デフォルト（指定なし）":
+        st.caption(f"📝 使用するモデルID: `{selected_model_id}`")
     
     # Image upload (reference image) - Image-to-Image mode
     st.markdown("---")
@@ -165,16 +155,12 @@ if generate_btn:
         st.info("📝 最終プロンプト:")
         st.text_area("Combined Prompt", value=final_prompt, height=150, disabled=True)
         
-        # Show generation mode and model info
+        # Show Image-to-Image info if image uploaded
         if uploaded_file is not None:
             st.info("🖼️ Image-to-Image モード")
-            st.caption(f"モデル: {selected_model_name}")
             st.caption(f"変更度: {denoising_strength}")
             st.caption(f"ファイル名: {uploaded_file.name}")
             st.caption(f"ファイルサイズ: {uploaded_file.size / 1024:.2f} KB")
-        else:
-            st.info("📝 Text-to-Image モード")
-            st.caption(f"モデル: {selected_model_name}")
     
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
@@ -223,9 +209,12 @@ if generate_btn:
             "role": "user",
             "content": content_items
         }],
-        "type": "edit" if image_base64 else "new",
-        "model_id": selected_model_id  # Add model selection
+        "type": "edit" if image_base64 else "new"
     }
+    
+    # Add model_id if selected
+    if selected_model_id is not None:
+        payload["model_id"] = selected_model_id
     
     headers = {
         'x-api-key': api_key,
