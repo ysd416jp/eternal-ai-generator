@@ -83,9 +83,9 @@ with col1:
         "Qwen Image Edit2509": "Qwen-Image-Edit-2509",
         "Qwen Image Edit2511": "Qwen-Image-Edit-2511",
         "Flux 2 Pro": "Flux-2-Pro",
-        "Nano Banana": "Gemini-3-Pro-Image",
+        "Nano Banana": "gemini-3-pro-image-preview",
         "Grok4": "Grok-4-1-Fast",
-        "Grok2": "grok-2-image-1212",
+        "Grok2": "Stable-Diffusion-3.5-Large",
         "Seedream 4.5": "Seedream-4.5"
     }
     
