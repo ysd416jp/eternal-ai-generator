@@ -170,10 +170,8 @@ if generate_btn:
     # Add image fields for Image-to-Image mode
     if image_base64:
         payload["image"] = image_base64
-        payload["image_config"] = {
-            "denoising_strength": denoising_strength,
-            "num_inference_steps": 30
-        }
+        payload["denoising_strength"] = denoising_strength
+        payload["num_inference_steps"] = 30
     
     headers = {
         'x-api-key': api_key,
