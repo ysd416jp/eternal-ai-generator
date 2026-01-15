@@ -164,17 +164,31 @@ if generate_btn:
             st.stop()
     
     # Payload configuration (Legacy API format)
-    payload = {
-        "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
-    }
+    # Build content array
+    content_items = [
+        {
+            "type": "text",
+            "text": final_prompt
+        }
+    ]
     
-    # Add image fields for Image-to-Image mode
+    # Add image to content array for Image-to-Image mode (following official docs)
     if image_base64:
-        payload["type"] = "edit"  # Change to "edit" mode for Image-to-Image
-        payload["image"] = image_base64
-        payload["strength"] = denoising_strength
-    else:
-        payload["type"] = "new"  # "new" for Text-to-Image
+        content_items.append({
+            "type": "image_url",
+            "image_url": {
+                "url": image_base64,
+                "filename": "input.jpg"
+            }
+        })
+    
+    payload = {
+        "messages": [{
+            "role": "user",
+            "content": content_items
+        }],
+        "type": "edit" if image_base64 else "new"
+    }
     
     headers = {
         'x-api-key': api_key,
@@ -205,8 +219,8 @@ if generate_btn:
                 st.success(f"✅ Request sent! ID: {request_id}")
                 st.json(data)  # Show full response
             
-            # Legacy API polling
-            check_url_base = "https://open.eternalai.org/poll-result"
+            # Legacy API polling (correct endpoint with /creative-ai/)
+            check_url_base = "https://open.eternalai.org/creative-ai/poll-result"
             
             if image_base64:
                 st.caption("ℹ️ Generating image (Image-to-Image mode)... (typically takes 45s - 1min)")
