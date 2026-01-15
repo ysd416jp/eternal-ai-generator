@@ -75,6 +75,39 @@ with col1:
         help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
     )
     
+    # 🤖 Model selection
+    st.markdown("---")
+    st.info("🤖 生成モデル選択")
+    
+    model_options = {
+        "Qwen Image Edit (最も柔軟・最安)": "Qwen-Image-Edit-2509",
+        "Nano Banana Pro (最高品質・高速)": "gemini-3-pro-image-preview",
+        "Nano Banana (高品質)": "gemini-2.5-flash-image",
+        "Seedream 4.5 (新モデル)": "seedream-4-5-251128",
+        "Flux 2 Pro (高品質)": "flux-2-pro"
+    }
+    
+    model_descriptions = {
+        "Qwen Image Edit (最も柔軟・最安)": "🎨 創造的自由度が高い。18+対応。1 Diamond（最安）。実は最新版2511。",
+        "Nano Banana Pro (最高品質・高速)": "👑 顔と照明の保存が最高。リアルなポートレートに最適。高速処理。",
+        "Nano Banana (高品質)": "⚡ 高品質で高速。バランスの取れた選択。",
+        "Seedream 4.5 (新モデル)": "🌟 最新モデル。高解像度とリアルな表現。",
+        "Flux 2 Pro (高品質)": "💎 プロフェッショナル品質。高度な生成能力。"
+    }
+    
+    selected_model_display = st.selectbox(
+        "モデルを選択",
+        options=list(model_options.keys()),
+        index=0,  # デフォルト: Qwen (最安・最も柔軟)
+        help="用途に応じてモデルを選択してください。Qwen が最もコスパが良く柔軟です。"
+    )
+    
+    selected_model_id = model_options[selected_model_display]
+    
+    # Show model description
+    st.caption(model_descriptions[selected_model_display])
+    st.caption(f"📝 モデルID: `{selected_model_id}`")
+    
     # Image upload (reference image) - Image-to-Image mode
     st.markdown("---")
     st.info("🖼️ Reference Image (Image-to-Image)")
@@ -187,7 +220,8 @@ if generate_btn:
             "role": "user",
             "content": content_items
         }],
-        "type": "edit" if image_base64 else "new"
+        "type": "edit" if image_base64 else "new",
+        "model_id": selected_model_id  # Always include model_id
     }
     
     headers = {
