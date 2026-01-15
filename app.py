@@ -3,6 +3,9 @@ import streamlit as st
 import requests
 import time
 import os
+import base64
+from io import BytesIO
+from PIL import Image
 
 # API key configuration
 KEY_FILE_PATH = "/Users/yoichiroyoshida/my_ai_app/eternal_api_key.txt"
@@ -72,13 +75,40 @@ with col1:
         help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
     )
     
-    # Image upload (reference image)
+    # Image upload (reference image) - Image-to-Image mode
     st.markdown("---")
-    st.info("🖼️ Reference Image (Optional)")
-    uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"], help="Reference image for generation (if EternalAI API supports it)")
+    st.info("🖼️ Reference Image (Image-to-Image)")
     
-    if uploaded_file is not None:
-        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+    mode_tabs = st.tabs(["📝 Text-to-Image", "🖼️ Image-to-Image"])
+    
+    with mode_tabs[0]:
+        st.markdown("**プロンプトのみで画像生成**")
+        st.caption("参照画像なしでゼロから生成します")
+    
+    with mode_tabs[1]:
+        st.markdown("**参照画像 + プロンプトで画像生成**")
+        uploaded_file = st.file_uploader(
+            "画像をアップロード", 
+            type=["jpg", "jpeg", "png", "webp"],
+            help="最大5MB。アップロードした画像をベースに、プロンプトで指示した内容に変更します。"
+        )
+        
+        if uploaded_file is not None:
+            st.image(uploaded_file, caption="参照画像", use_column_width=True)
+            
+            # Denoising strength slider
+            denoising_strength = st.slider(
+                "🎚️ 変更度（Denoising Strength）",
+                min_value=0.1,
+                max_value=0.9,
+                value=0.5,
+                step=0.1,
+                help="0.1 = 微調整（元画像に近い）、0.9 = 大幅変更（プロンプト重視）"
+            )
+            
+            st.caption(f"現在の設定: {denoising_strength} ({'微調整' if denoising_strength < 0.4 else '大幅変更' if denoising_strength > 0.6 else 'バランス'})")
+        else:
+            denoising_strength = 0.5
     
     generate_btn = st.button("🚀 Generate", type="primary")
 
@@ -100,12 +130,50 @@ if generate_btn:
     with col2:
         st.info("📝 最終プロンプト:")
         st.text_area("Combined Prompt", value=final_prompt, height=150, disabled=True)
+        
+        # Show Image-to-Image info if image uploaded
+        if uploaded_file is not None:
+            st.info("🖼️ Image-to-Image モード")
+            st.caption(f"変更度: {denoising_strength}")
+            st.caption(f"ファイル名: {uploaded_file.name}")
+            st.caption(f"ファイルサイズ: {uploaded_file.size / 1024:.2f} KB")
     
-    # Payload configuration (without lora_config)
+    # Convert uploaded image to Base64 (if exists)
+    image_base64 = None
+    if uploaded_file is not None:
+        try:
+            # Read image
+            image = Image.open(uploaded_file)
+            
+            # Resize if too large (max 5MB after compression)
+            max_size = (1024, 1024)
+            image.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            # Convert to Base64
+            buffered = BytesIO()
+            image_format = image.format if image.format else 'PNG'
+            image.save(buffered, format=image_format, quality=85)
+            img_bytes = buffered.getvalue()
+            image_base64 = f"data:image/{image_format.lower()};base64,{base64.b64encode(img_bytes).decode()}"
+            
+            status_text.text(f"画像を変換しました ({len(img_bytes) / 1024:.2f} KB)")
+        except Exception as e:
+            st.error(f"画像の読み込みに失敗しました: {e}")
+            st.stop()
+    
+    # Payload configuration
     payload = {
         "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
         "type": "new"
     }
+    
+    # Add image fields for Image-to-Image mode
+    if image_base64:
+        payload["image"] = image_base64
+        payload["image_config"] = {
+            "denoising_strength": denoising_strength,
+            "num_inference_steps": 30
+        }
     
     headers = {
         'x-api-key': api_key,
