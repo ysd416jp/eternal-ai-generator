@@ -80,13 +80,11 @@ with col1:
     st.info("🤖 生成モデル選択")
     
     model_options = {
-        "Qwen Image Edit2509": "Qwen-Image-Edit-2509",
-        "Qwen Image Edit2511": "Qwen-Image-Edit-2511",
-        "Flux 2 Pro": "Flux-2-Pro",
+        "Qwen Image 2.5": "qwen-2.5-72b-instruct",
+        "Qwen Image Edit2511": "qwen-image-edit-2511",
+        "Flux 2 Pro": "flux-2-Pro",
         "Nano Banana": "gemini-3-pro-image-preview",
-        "Grok4": "Grok-4-1-Fast",
-        "Grok2": "Stable-Diffusion-3.5-Large",
-        "Seedream 4.5": "Seedream-4.5"
+        "Seedream 4.5": "seedream-4-5-251128"
     }
     
     selected_model_name = st.selectbox(
@@ -100,12 +98,10 @@ with col1:
     
     # Show model info
     model_descriptions = {
-        "Qwen Image Edit2509": "🎨 画像編集特化型。細かい修正やアップスケールに最適",
+        "Qwen Image 2.5": "🎨 画像編集特化型。細かい修正やアップスケールに最適",
         "Qwen Image Edit2511": "最新qwen",
         "Flux 2 Pro": "⚡ 高速・高品質。バランスの取れた生成",
         "Nano Banana": "🍌 最も柔軟で高品質。制限が少なく創造的な生成が可能",
-        "Grok4": "最新最速grok",
-        "Grok2": "画像特化grok",
         "Seedream 4.5": "🌟 最新モデル。高解像度とリアルな表現が特徴"
     }
     
