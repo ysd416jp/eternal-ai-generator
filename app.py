@@ -166,13 +166,15 @@ if generate_btn:
     # Payload configuration (Legacy API format)
     payload = {
         "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
-        "type": "new"
     }
     
     # Add image fields for Image-to-Image mode
     if image_base64:
+        payload["type"] = "edit"  # Change to "edit" mode for Image-to-Image
         payload["image"] = image_base64
-        payload["strength"] = denoising_strength  # Try "strength" instead of "denoising_strength"
+        payload["strength"] = denoising_strength
+    else:
+        payload["type"] = "new"  # "new" for Text-to-Image
     
     headers = {
         'x-api-key': api_key,
@@ -228,10 +230,21 @@ if generate_btn:
                     res_data = check_res.json()
                     status = res_data.get("status")
                     
+                    # Debug: show polling response every 10 iterations
+                    if i % 10 == 0:
+                        with col2:
+                            st.caption(f"Polling {i}: {status}")
+                            st.json(res_data)
+                    
                     if status in ["done", "success", "completed"]:
                         progress_bar.progress(100)
                         
-                        img_url = res_data.get("result_url") or res_data.get("result")
+                        # Try multiple possible field names for image URL
+                        img_url = (res_data.get("result_url") or 
+                                  res_data.get("url") or 
+                                  res_data.get("result") or 
+                                  res_data.get("image_url") or
+                                  res_data.get("output_url"))
                         
                         if img_url:
                             with col2:
@@ -241,6 +254,7 @@ if generate_btn:
                                 st.markdown(f"[Download Image]({img_url})")
                         else:
                             st.warning("Completed but image URL not found.")
+                            st.caption("Received data:")
                             st.json(res_data)
                         break
                     
