@@ -83,7 +83,7 @@ with col1:
         "デフォルト（指定なし）": None,
         "Nano Banana Pro ✅": "gemini-3-pro-image-preview",
         "Nano Banana（推測）": "gemini-2.5-flash-image",
-        "Qwen Image Edit（推測）": "Qwen-Image-Edit-2509"
+        "Qwen Image Edit（推測）": "Qwen/Qwen-Image-2512"
     }
     
     selected_model_display = st.selectbox(
