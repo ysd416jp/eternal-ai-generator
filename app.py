@@ -119,15 +119,9 @@ if generate_btn:
     progress_bar = st.progress(0)
     
     # 1. Send request (POST)
-    # Use different endpoint for Image-to-Image
-    if uploaded_file is not None:
-        # V1 API for Image-to-Image (サポート推奨)
-        url_create = "https://api.eternalai.org/v1/image/generate"
-        use_v1_api = True
-    else:
-        # Legacy API for Text-to-Image (動作確認済み)
-        url_create = "https://open.eternalai.org/creative-ai/image"
-        use_v1_api = False
+    # Legacy API supports both Text-to-Image and Image-to-Image
+    url_create = "https://open.eternalai.org/creative-ai/image"
+    use_v1_api = False
     
     # Combine prompt with style preset
     final_prompt = prompt_text
@@ -169,26 +163,16 @@ if generate_btn:
             st.error(f"画像の読み込みに失敗しました: {e}")
             st.stop()
     
-    # Payload configuration
-    if use_v1_api:
-        # V1 API format (Image-to-Image)
-        payload = {
-            "prompt": final_prompt,
-            "model": "Nano Banana",
-            "image": image_base64,
-            "denoising_strength": denoising_strength,
-            "num_inference_steps": 30
-        }
-    else:
-        # Legacy API format (Text-to-Image)
-        payload = {
-            "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
-            "type": "new"
-        }
-        if image_base64:
-            payload["image"] = image_base64
-            payload["denoising_strength"] = denoising_strength
-            payload["num_inference_steps"] = 30
+    # Payload configuration (Legacy API format)
+    payload = {
+        "messages": [{"role": "user", "content": [{"type": "text", "text": final_prompt}]}],
+        "type": "new"
+    }
+    
+    # Add image fields for Image-to-Image mode
+    if image_base64:
+        payload["image"] = image_base64
+        payload["strength"] = denoising_strength  # Try "strength" instead of "denoising_strength"
     
     headers = {
         'x-api-key': api_key,
@@ -219,14 +203,12 @@ if generate_btn:
                 st.success(f"✅ Request sent! ID: {request_id}")
                 st.json(data)  # Show full response
             
-            # Different polling for v1 API
-            if use_v1_api:
-                # V1 API polling
-                check_url_base = "https://api.eternalai.org/v1/image/result"
-                st.caption("ℹ️ Generating image with V1 API... (typically takes 45s - 1min)")
+            # Legacy API polling
+            check_url_base = "https://open.eternalai.org/poll-result"
+            
+            if image_base64:
+                st.caption("ℹ️ Generating image (Image-to-Image mode)... (typically takes 45s - 1min)")
             else:
-                # Legacy API polling
-                check_url_base = "https://open.eternalai.org/poll-result"
                 st.caption("ℹ️ Generating image... (typically takes 45s - 1min)")
             
             # 2. Polling loop (max 5 minutes)
@@ -238,13 +220,9 @@ if generate_btn:
                 current_val = int(min((i + 1) / 40 * 100, 95))
                 progress_bar.progress(current_val)
                 
-                # Path parameter or query parameter depending on API
-                if use_v1_api:
-                    check_url = f"{check_url_base}?request_id={request_id}"
-                    check_res = requests.get(check_url, headers={'api-key': api_key})
-                else:
-                    check_url = f"{check_url_base}/{request_id}"
-                    check_res = requests.get(check_url, headers={'x-api-key': api_key})
+                # Legacy API polling
+                check_url = f"{check_url_base}/{request_id}"
+                check_res = requests.get(check_url, headers={'x-api-key': api_key})
                 
                 if check_res.status_code == 200:
                     res_data = check_res.json()
