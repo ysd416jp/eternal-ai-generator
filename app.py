@@ -81,12 +81,12 @@ with col1:
     
     model_options = {
         "Qwen Image Edit2509": "Qwen-Image-Edit-2509",
-        "Qwen Image Edit2511": "qwen-image-edit-2511",
-        "Flux 2 Pro": "Flux-2-pro",
-        "Nano Banana": "gemini-3-pro-image-preview",
-        "Grok4": "grok-4-1-fast-reasoning",
+        "Qwen Image Edit2511": "Qwen-Image-Edit-2511",
+        "Flux 2 Pro": "Flux-2-Pro",
+        "Nano Banana": "Gemini-3-Pro-ImageS",
+        "Grok4": "Grok-4-1-Fast",
         "Grok2": "grok-2-image-1212",
-        "Seedream 4.5": "seedream-4-5-251128"
+        "Seedream 4.5": "Seedream-4.5"
     }
     
     selected_model_name = st.selectbox(
