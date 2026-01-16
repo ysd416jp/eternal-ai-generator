@@ -30,8 +30,9 @@ def load_api_key():
 
 # UI Configuration
 st.set_page_config(page_title="EternalAI Image Generator", layout="wide")
-st.title("🎨 EternalAI Image Generator")
-st.markdown("Enter a prompt and AI will generate an image for you.")
+
+# Compact title (small and humble)
+st.markdown("<p style='text-align: center; color: #888; font-size: 14px; margin: 5px 0;'>🎨 EternalAI Image Generator</p>", unsafe_allow_html=True)
 
 # Get prompt from URL parameter (from translation site)
 query_params = st.query_params
@@ -45,33 +46,31 @@ if not api_key:
     st.error("API key not found")
     st.stop()
 
-# Sidebar: Image Gallery
+# Sidebar: Image Gallery (Ultra Compact for maximum density)
 with st.sidebar:
-    st.header("📸 生成履歴")
-    st.caption(f"セッション内: {len(st.session_state.generated_images)}枚")
+    st.markdown("<p style='font-size:16px; margin:0;'>📸 履歴 ({0})</p>".format(len(st.session_state.generated_images)), unsafe_allow_html=True)
     
     if len(st.session_state.generated_images) > 0:
-        st.markdown("---")
-        # Show last 10 images in reverse order (newest first)
-        for idx, img_data in enumerate(reversed(st.session_state.generated_images[-10:])):
-            with st.container():
-                st.image(img_data["url"], use_column_width=True)
-                
-                # Model, timestamp, and size info
-                st.caption(f"🤖 {img_data['model']} | 🕒 {img_data['timestamp']}")
-                if "size_kb" in img_data and "dimensions" in img_data:
-                    st.caption(f"📊 {img_data['size_kb']} KB | 📎 {img_data['dimensions']}")
-                
-                # Prompt (collapsible)
-                with st.expander("📝 プロンプト"):
-                    st.text(img_data["prompt"][:150] + "..." if len(img_data["prompt"]) > 150 else img_data["prompt"])
-                
-                # Download link
-                st.markdown(f"[📥 ダウンロード]({img_data['url']})")
-                
-                st.markdown("---")
+        st.markdown("<hr style='margin:5px 0;'>", unsafe_allow_html=True)
+        # Show last 20 images - ultra compact
+        for idx, img_data in enumerate(reversed(st.session_state.generated_images[-20:])):
+            # Tiny thumbnail (100px width)
+            st.image(img_data["url"], width=100)
+            
+            # Ultra compact info
+            st.markdown(f"<p style='font-size:9px; margin:2px 0;'>{img_data['model']} | {img_data['size_kb']}KB</p>", unsafe_allow_html=True)
+            
+            # Tiny buttons
+            cols = st.columns([1, 1])
+            with cols[0]:
+                if st.button("📝", key=f"p_{idx}", help="Prompt"):
+                    st.caption(img_data["prompt"][:80])
+            with cols[1]:
+                st.markdown(f"<a href='{img_data['url']}' download style='font-size:10px;'>📥</a>", unsafe_allow_html=True)
+            
+            st.markdown("<hr style='margin:3px 0; opacity:0.3;'>", unsafe_allow_html=True)
     else:
-        st.info("まだ画像が生成されていません")
+        st.info("未生成")
 
 # Style Presets
 STYLE_PRESETS = {
@@ -87,30 +86,25 @@ STYLE_PRESETS = {
 # Input Area
 col1, col2 = st.columns([1, 1])
 with col1:
-    st.info("📝 Describe the image you want to generate (in English)")
-    
     # Style preset selector
     selected_style = st.selectbox(
         "🎨 スタイルプリセット",
-        options=list(STYLE_PRESETS.keys()),
-        help="写真スタイルを選択してください。自動的にプロンプトに追加されます。"
+        options=list(STYLE_PRESETS.keys())
     )
     
-    # Show selected style description
+    # Show selected style description (compact)
     if selected_style != "None (カスタムのみ)":
-        with st.expander("ℹ️ 選択中のスタイル詳細"):
-            st.code(STYLE_PRESETS[selected_style])
+        with st.expander("ℹ️ スタイル詳細"):
+            st.caption(STYLE_PRESETS[selected_style])
     
     prompt_text = st.text_area(
-        "Prompt (English)", 
-        height=150, 
-        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 30s, wearing a white coat",
-        help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
+        "📝 Prompt (English)", 
+        height=100,
+        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 30s, wearing a white coat"
     )
     
     # 🤖 Model selection (Compact horizontal radio)
-    st.markdown("---")
-    st.markdown("🤖 **モデル選択**")
+    st.markdown("🤖 **モデル**")
     
     model_options = {
         "Qwen": "Qwen-Image-Edit-2509",
@@ -140,37 +134,26 @@ with col1:
     st.caption(f"📝 {model_full_names[selected_model_short]}")
     
     # Image upload (reference image) - Image-to-Image mode
-    st.markdown("---")
-    st.info("🖼️ Reference Image (Image-to-Image)")
-    
     mode_tabs = st.tabs(["📝 Text-to-Image", "🖼️ Image-to-Image"])
     
     with mode_tabs[0]:
-        st.markdown("**プロンプトのみで画像生成**")
         st.caption("参照画像なしでゼロから生成します")
     
     with mode_tabs[1]:
-        st.markdown("**参照画像 + プロンプトで画像生成**")
         uploaded_file = st.file_uploader(
-            "画像をアップロード", 
-            type=["jpg", "jpeg", "png", "webp"],
-            help="最大5MB。アップロードした画像をベースに、プロンプトで指示した内容に変更します。"
+            "参照画像をアップロード", 
+            type=["jpg", "jpeg", "png", "webp"]
         )
         
         if uploaded_file is not None:
-            st.image(uploaded_file, caption="参照画像", use_column_width=True)
-            
-            # Denoising strength slider
+            # Denoising strength slider (compact)
             denoising_strength = st.slider(
-                "🎚️ 変更度（Denoising Strength）",
+                "🎚️ 変更度",
                 min_value=0.1,
                 max_value=0.9,
                 value=0.5,
-                step=0.1,
-                help="0.1 = 微調整（元画像に近い）、0.9 = 大幅変更（プロンプト重視）"
+                step=0.1
             )
-            
-            st.caption(f"現在の設定: {denoising_strength} ({'微調整' if denoising_strength < 0.4 else '大幅変更' if denoising_strength > 0.6 else 'バランス'})")
         else:
             denoising_strength = 0.5
     
@@ -348,11 +331,11 @@ if generate_btn:
                                     st.markdown("### 🔄 Before & After")
                                     compare_cols = st.columns(2)
                                     with compare_cols[0]:
-                                        st.image(uploaded_file, caption="参照画像 (Reference)", use_column_width=True)
+                                        st.image(uploaded_file, caption="📥 参照画像", use_column_width=True)
                                     with compare_cols[1]:
-                                        st.image(img_url, caption="生成画像 (Generated)", use_column_width=True)
+                                        st.image(img_url, caption="✨ 生成画像", use_column_width=True)
                                 else:
-                                    st.image(img_url, caption="Generated Result")
+                                    st.image(img_url, caption="✨ Generated Result", use_column_width=True)
                                 
                                 st.markdown(f"[📥 Download Image]({img_url})")
                                 st.caption(f"📊 サイズ: {img_size_kb:.1f} KB | 📎 解像度: {img_dimensions}")
