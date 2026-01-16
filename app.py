@@ -31,6 +31,28 @@ def load_api_key():
 # UI Configuration
 st.set_page_config(page_title="EternalAI Image Generator", layout="wide")
 
+# Custom CSS for compact layout
+st.markdown("""
+<style>
+    /* Reduce top padding */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0rem;
+    }
+    
+    /* Compact sections */
+    .stMarkdown {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Larger slider handle */
+    div[data-baseweb="slider"] > div > div > div > div {
+        width: 20px !important;
+        height: 20px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # Compact title (small and humble)
 st.markdown("<p style='text-align: center; color: #888; font-size: 12px; margin: 0; padding: 0;'>EternalAI Image Generator</p>", unsafe_allow_html=True)
 
@@ -46,41 +68,45 @@ if not api_key:
     st.error("API key not found")
     st.stop()
 
-# Sidebar: Image Gallery (Ultra Compact for maximum density)
+# Sidebar: Image Gallery (Ultra Compact with overlay buttons)
 with st.sidebar:
-    st.markdown("<p style='font-size:14px; margin:0; padding:5px 0;'>History ({0})</p>".format(len(st.session_state.generated_images)), unsafe_allow_html=True)
+    st.markdown("<p style='font-size:14px; margin:0; padding:2px 0;'>History ({0})</p>".format(len(st.session_state.generated_images)), unsafe_allow_html=True)
     
     if len(st.session_state.generated_images) > 0:
-        st.markdown("<hr style='margin:5px 0;'>", unsafe_allow_html=True)
-        # Show last 20 images - ultra compact
+        st.markdown("<hr style='margin:3px 0;'>", unsafe_allow_html=True)
+        # Show last 20 images - ultra compact with overlay
         for idx, img_data in enumerate(reversed(st.session_state.generated_images[-20:])):
-            # Tiny thumbnail (100px width)
-            st.image(img_data["url"], width=100)
+            # Image with overlay buttons
+            st.markdown(f"""
+            <div style="position: relative; margin-bottom: 5px;">
+                <img src="{img_data['url']}" style="width: 100%; border-radius: 5px;" />
+                <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px;">
+                    <a href="{img_data['url']}" target="_blank" style="background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none; font-size: 10px;">View</a>
+                    <a href="{img_data['url']}" download style="background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none; font-size: 10px;">DL</a>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # Ultra compact info
-            st.markdown(f"<p style='font-size:9px; margin:2px 0;'>{img_data['model']} | {img_data['size_kb']}KB</p>", unsafe_allow_html=True)
+            # Ultra compact info directly below image
+            st.markdown(f"<p style='font-size:8px; margin:1px 0;'>{img_data['model']} | {img_data['size_kb']}KB | {img_data['dimensions']}</p>", unsafe_allow_html=True)
             
-            # Tiny buttons
-            cols = st.columns([1, 1])
-            with cols[0]:
-                if st.button("P", key=f"p_{idx}", help="Prompt"):
-                    st.caption(img_data["prompt"][:80])
-            with cols[1]:
-                st.markdown(f"<a href='{img_data['url']}' download style='font-size:10px;'>DL</a>", unsafe_allow_html=True)
+            # Collapsible prompt
+            with st.expander("Prompt", expanded=False):
+                st.caption(img_data["prompt"][:100])
             
-            st.markdown("<hr style='margin:3px 0; opacity:0.3;'>", unsafe_allow_html=True)
+            st.markdown("<hr style='margin:3px 0; opacity:0.2;'>", unsafe_allow_html=True)
     else:
         st.info("No images yet")
 
-# Style Presets
+# Style Presets (English only, no icons)
 STYLE_PRESETS = {
-    "None (カスタムのみ)": "",
-    "📸 実写・ポートレート": "photorealistic, professional portrait photography, natural lighting, shot on Canon EOS R5, 85mm f/1.2, natural skin texture, realistic features, shallow depth of field, soft studio lighting, lifelike",
-    "🎬 映画風": "cinematic photography, film grain, anamorphic lens, natural color grading, shot on ARRI Alexa, dramatic lighting, movie still, cinematic composition",
-    "📷 ストリート写真": "candid street photography, natural lighting, realistic atmosphere, documentary style, shot on Leica M10, 35mm lens, photojournalism, authentic moment",
-    "💼 商業写真": "commercial photography, professional studio lighting, high resolution, sharp focus, advertising quality, clean background, product photography style",
-    "🌆 風景写真": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range",
-    "🎨 アート写真": "fine art photography, creative lighting, artistic composition, professional color grading, gallery quality, expressive mood"
+    "None (Custom)": "",
+    "Realistic Portrait": "photorealistic, professional portrait photography, natural lighting, shot on Canon EOS R5, 85mm f/1.2, natural skin texture, realistic features, shallow depth of field, soft studio lighting, lifelike",
+    "Cinematic": "cinematic photography, film grain, anamorphic lens, natural color grading, shot on ARRI Alexa, dramatic lighting, movie still, cinematic composition",
+    "Street Photography": "candid street photography, natural lighting, realistic atmosphere, documentary style, shot on Leica M10, 35mm lens, photojournalism, authentic moment",
+    "Commercial": "commercial photography, professional studio lighting, high resolution, sharp focus, advertising quality, clean background, product photography style",
+    "Landscape": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range",
+    "Art Photography": "fine art photography, creative lighting, artistic composition, professional color grading, gallery quality, expressive mood"
 }
 
 # Input Area
@@ -92,10 +118,15 @@ with col1:
         options=list(STYLE_PRESETS.keys())
     )
     
-    # Show selected style description (compact)
-    if selected_style != "None (カスタムのみ)":
-        with st.expander("Style Details"):
-            st.caption(STYLE_PRESETS[selected_style])
+    # Show selected style description (editable)
+    if selected_style != "None (Custom)":
+        style_prompt = st.text_area(
+            "Style Details (Editable)",
+            value=STYLE_PRESETS[selected_style],
+            height=60
+        )
+    else:
+        style_prompt = ""
     
     prompt_text = st.text_area(
         "Prompt (English)", 
@@ -150,39 +181,30 @@ with col1:
     
     selected_aspect_value = aspect_ratio_options[selected_aspect_ratio]
     
+    # Denoising strength slider with larger handle (always show)
+    denoising_strength = st.slider(
+        "Denoising Strength",
+        min_value=0.1,
+        max_value=0.9,
+        value=0.6,
+        step=0.1,
+        help="Lower: subtle changes, Higher: dramatic changes"
+    )
+    
     # Image upload (reference image) - Simple, no tabs
     uploaded_file = st.file_uploader(
         "Reference Image (Optional)", 
         type=["jpg", "jpeg", "png", "webp"],
-        help="Upload a reference image for Image-to-Image generation"
+        help="Upload a reference image for Image-to-Image generation (Max 5MB)"
     )
     
-    # Show reference image immediately when uploaded
-    if uploaded_file is not None:
-        st.image(uploaded_file, caption="Reference Image", use_column_width=True)
-        
-        # Denoising strength slider with larger handle
-        st.markdown("""
-        <style>
-        div[data-baseweb="slider"] > div > div > div > div {
-            width: 20px !important;
-            height: 20px !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        denoising_strength = st.slider(
-            "Denoising Strength",
-            min_value=0.1,
-            max_value=0.9,
-            value=0.6,
-            step=0.1,
-            help="Lower: subtle changes, Higher: dramatic changes"
-        )
-    else:
-        denoising_strength = 0.6
-    
     generate_btn = st.button("Generate", type="primary")
+
+with col2:
+    # Show reference image in col2 (right side) when uploaded
+    if uploaded_file is not None:
+        st.markdown("### Reference Image")
+        st.image(uploaded_file, use_column_width=True)
 
 # Generation Logic
 if generate_btn:
@@ -195,14 +217,19 @@ if generate_btn:
     url_create = "https://open.eternalai.org/creative-ai/image"
     use_v1_api = False
     
-    # Combine prompt with style preset
+    # Combine prompt with style preset (use editable style_prompt)
     final_prompt = prompt_text
-    if selected_style != "None (カスタムのみ)":
-        final_prompt = f"{prompt_text}, {STYLE_PRESETS[selected_style]}"
+    if selected_style != "None (Custom)" and style_prompt:
+        final_prompt = f"{prompt_text}, {style_prompt}"
     
     # Add aspect ratio to prompt (if not Auto)
     if selected_aspect_value != "auto":
         final_prompt = f"{final_prompt}, aspect ratio {selected_aspect_value}"
+    
+    # Debug: Show final prompt in col2
+    with col2:
+        with st.expander("Final Prompt (Debug)", expanded=True):
+            st.text_area("Final prompt sent to API", value=final_prompt, height=100, disabled=True)
     
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
@@ -222,9 +249,9 @@ if generate_btn:
             img_bytes = buffered.getvalue()
             image_base64 = f"data:image/{image_format.lower()};base64,{base64.b64encode(img_bytes).decode()}"
             
-            status_text.text(f"画像を変換しました ({len(img_bytes) / 1024:.2f} KB)")
+            status_text.text(f"Image converted ({len(img_bytes) / 1024:.2f} KB)")
         except Exception as e:
-            st.error(f"画像の読み込みに失敗しました: {e}")
+            st.error(f"Failed to load image: {e}")
             st.stop()
     
     # Payload configuration (Legacy API format)
@@ -263,29 +290,11 @@ if generate_btn:
     try:
         status_text.text("Sending request...")
         
-        # Debug: show payload (collapsible)
-        with col2:
-            with st.expander("Debug Info (Click to expand)", expanded=False):
-                st.info("Sending payload:")
-                st.json(payload)
-        
         response = requests.post(url_create, headers=headers, json=payload)
-        
-        # Show response for debugging (collapsible)
-        with col2:
-            with st.expander("Debug Info (Click to expand)", expanded=False):
-                st.info(f"Response Status: {response.status_code}")
-                if response.status_code != 200:
-                    st.error(f"Response: {response.text}")
         
         if response.status_code == 200:
             data = response.json()
             request_id = data.get("request_id") or data.get("id")
-            
-            with col2:
-                with st.expander("Debug Info (Click to expand)", expanded=False):
-                    st.success(f"Request sent! ID: {request_id}")
-                    st.json(data)  # Show full response
             
             # Legacy API polling (correct endpoint with /creative-ai/)
             check_url_base = "https://open.eternalai.org/creative-ai/poll-result"
@@ -311,13 +320,6 @@ if generate_btn:
                 if check_res.status_code == 200:
                     res_data = check_res.json()
                     status = res_data.get("status")
-                    
-                    # Debug: show polling response every 10 iterations (collapsible)
-                    if i % 10 == 0:
-                        with col2:
-                            with st.expander("Debug Info (Click to expand)", expanded=False):
-                                st.caption(f"Polling {i}: {status}")
-                                st.json(res_data)
                     
                     if status in ["done", "success", "completed"]:
                         progress_bar.progress(100)
@@ -368,6 +370,13 @@ if generate_btn:
                                 
                                 st.markdown(f"[Download Image]({img_url})")
                                 st.caption(f"Size: {img_size_kb:.1f} KB | Resolution: {img_dimensions}")
+                                
+                                # Debug info at the bottom (collapsible)
+                                with st.expander("Debug Info (Click to expand)", expanded=False):
+                                    st.info("Request Details:")
+                                    st.json({"request_id": request_id, "payload": payload})
+                                    st.info("Response:")
+                                    st.json(res_data)
                         else:
                             st.warning("Completed but image URL not found.")
                             st.caption("Received data:")
