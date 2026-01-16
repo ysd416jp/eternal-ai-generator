@@ -31,24 +31,43 @@ def load_api_key():
 # UI Configuration
 st.set_page_config(page_title="EternalAI Image Generator", layout="wide")
 
-# Custom CSS for compact layout
+# Custom CSS for compact layout and DARK MODE
 st.markdown("""
 <style>
+    /* Force Dark Mode */
+    .stApp {
+        background-color: #0E1117 !important;
+        color: #FAFAFA !important;
+    }
+    
     /* Reduce top padding */
     .block-container {
         padding-top: 1rem;
         padding-bottom: 0rem;
+        background-color: #0E1117 !important;
     }
     
     /* Compact sections */
     .stMarkdown {
         margin-bottom: 0.5rem;
+        color: #FAFAFA !important;
     }
     
     /* Larger slider handle */
     div[data-baseweb="slider"] > div > div > div > div {
         width: 20px !important;
         height: 20px !important;
+    }
+    
+    /* Dark mode for inputs */
+    .stTextArea textarea, .stTextInput input, .stSelectbox select {
+        background-color: #1E2329 !important;
+        color: #FAFAFA !important;
+    }
+    
+    /* Dark mode for file uploader */
+    .stFileUploader {
+        background-color: #1E2329 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -202,71 +221,40 @@ with col1:
     generate_btn = st.button("Generate", type="primary")
 
 with col2:
-    # 7) Sparkle effect placeholder (no reference image display here)
+    # Show Before (Reference Image) when uploaded
     if uploaded_file is not None:
-        st.markdown("### Waiting for generation...")
-        st.markdown("""
-        <div style="display: flex; justify-content: center; align-items: center; height: 300px;">
-            <div class="sparkle-container">
-                <div class="sparkle">✨</div>
-                <div class="sparkle">✨</div>
-                <div class="sparkle">✨</div>
-                <p style="color: #888; font-size: 14px; margin-top: 20px;">Preparing your image...</p>
-            </div>
-        </div>
-        
-        <style>
-        @keyframes sparkle {
-            0%, 100% { opacity: 0; transform: scale(0.5); }
-            50% { opacity: 1; transform: scale(1.2); }
-        }
-        .sparkle-container {
-            text-align: center;
-        }
-        .sparkle {
-            display: inline-block;
-            font-size: 40px;
-            animation: sparkle 1.5s ease-in-out infinite;
-            margin: 0 10px;
-        }
-        .sparkle:nth-child(2) {
-            animation-delay: 0.3s;
-        }
-        .sparkle:nth-child(3) {
-            animation-delay: 0.6s;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+        st.markdown("### Before (Reference)")
+        st.image(uploaded_file, use_column_width=True)
 
 # Generation Logic
 if generate_btn:
-    # 7) Sparkle effect during generation (no progress bar)
+    # 7) Sparkle effect during generation (smaller size)
     with col2:
         st.markdown("### Generating...")
         sparkle_placeholder = st.empty()
         sparkle_placeholder.markdown("""
-        <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
+        <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
             <div class="sparkle-container">
                 <div class="sparkle">✨</div>
                 <div class="sparkle">✨</div>
                 <div class="sparkle">✨</div>
-                <p style="color: #888; font-size: 16px; margin-top: 20px;">Creating your masterpiece...</p>
+                <p style="color: #888; font-size: 12px; margin-top: 10px;">Creating your masterpiece...</p>
             </div>
         </div>
         
         <style>
         @keyframes sparkle {
             0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-            50% { opacity: 1; transform: scale(1.5) rotate(180deg); }
+            50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
         }
         .sparkle-container {
             text-align: center;
         }
         .sparkle {
             display: inline-block;
-            font-size: 50px;
+            font-size: 25px;
             animation: sparkle 1.5s ease-in-out infinite;
-            margin: 0 15px;
+            margin: 0 8px;
         }
         .sparkle:nth-child(2) {
             animation-delay: 0.3s;
@@ -386,8 +374,6 @@ if generate_btn:
                     status = res_data.get("status")
                     
                     if status in ["done", "success", "completed"]:
-                        progress_bar.progress(100)
-                        
                         # Try multiple possible field names for image URL
                         img_url = (res_data.get("result_url") or 
                                   res_data.get("url") or 
@@ -424,14 +410,16 @@ if generate_btn:
                                 st.balloons()
                                 st.success("Generation complete!")
                                 
-                                # Show reference image and generated image side by side for Image-to-Image
+                                # Show reference image and generated image side by side (horizontal)
                                 if uploaded_file is not None:
                                     st.markdown("### Before & After")
                                     compare_cols = st.columns(2)
                                     with compare_cols[0]:
-                                        st.image(uploaded_file, caption="Reference", use_column_width=True)
+                                        st.markdown("**Before**")
+                                        st.image(uploaded_file, use_column_width=True)
                                     with compare_cols[1]:
-                                        st.image(img_url, caption="Generated", use_column_width=True)
+                                        st.markdown("**After**")
+                                        st.image(img_url, use_column_width=True)
                                 else:
                                     st.image(img_url, caption="Generated Result", use_column_width=True)
                                 
