@@ -76,23 +76,25 @@ with st.sidebar:
         st.markdown("<hr style='margin:3px 0;'>", unsafe_allow_html=True)
         # Show last 20 images - ultra compact with overlay
         for idx, img_data in enumerate(reversed(st.session_state.generated_images[-20:])):
-            # Image with overlay buttons
+            # Unique ID for each image
+            unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
+            
+            # Image with overlay buttons (View, DL, Copy Prompt)
             st.markdown(f"""
             <div style="position: relative; margin-bottom: 5px;">
                 <img src="{img_data['url']}" style="width: 100%; border-radius: 5px;" />
-                <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 5px;">
-                    <a href="{img_data['url']}" target="_blank" style="background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none; font-size: 10px;">View</a>
-                    <a href="{img_data['url']}" download style="background: rgba(0,0,0,0.7); color: white; padding: 3px 8px; border-radius: 3px; text-decoration: none; font-size: 10px;">DL</a>
+                <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 3px;">
+                    <a href="{img_data['url']}" target="_blank" style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">View</a>
+                    <a href="{img_data['url']}" download style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">DL</a>
+                    <button onclick="navigator.clipboard.writeText('{img_data['prompt'].replace("'", "\\'")}')"
+                            style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; border: none; cursor: pointer; font-size: 9px;"
+                            title="Copy full prompt">📋</button>
                 </div>
             </div>
             """, unsafe_allow_html=True)
             
             # Ultra compact info directly below image
-            st.markdown(f"<p style='font-size:8px; margin:1px 0;'>{img_data['model']} | {img_data['size_kb']}KB | {img_data['dimensions']}</p>", unsafe_allow_html=True)
-            
-            # Collapsible prompt
-            with st.expander("Prompt", expanded=False):
-                st.caption(img_data["prompt"][:100])
+            st.markdown(f"<p style='font-size:8px; margin:1px 0; color: #888;'>{img_data['model']} | {img_data['size_kb']}KB | {img_data['dimensions']}</p>", unsafe_allow_html=True)
             
             st.markdown("<hr style='margin:3px 0; opacity:0.2;'>", unsafe_allow_html=True)
     else:
@@ -112,6 +114,13 @@ STYLE_PRESETS = {
 # Input Area
 col1, col2 = st.columns([1, 1])
 with col1:
+    # 6) Browse Files at the top (決定的な態度)
+    uploaded_file = st.file_uploader(
+        "Reference Image (Optional)", 
+        type=["jpg", "jpeg", "png", "webp"],
+        help="Upload a reference image for Image-to-Image generation (Max 5MB)"
+    )
+    
     # Style preset selector
     selected_style = st.selectbox(
         "Style Preset",
@@ -160,8 +169,7 @@ with col1:
     
     selected_model_id = model_options[selected_model_short]
     
-    # Aspect Ratio selection
-    st.markdown("**Aspect Ratio**")
+    # 3) Aspect Ratio selection (no label, compact)
     aspect_ratio_options = {
         "Auto": "auto",
         "21:9": "21:9",
@@ -191,26 +199,85 @@ with col1:
         help="Lower: subtle changes, Higher: dramatic changes"
     )
     
-    # Image upload (reference image) - Simple, no tabs
-    uploaded_file = st.file_uploader(
-        "Reference Image (Optional)", 
-        type=["jpg", "jpeg", "png", "webp"],
-        help="Upload a reference image for Image-to-Image generation (Max 5MB)"
-    )
-    
     generate_btn = st.button("Generate", type="primary")
 
 with col2:
-    # Show reference image in col2 (right side) when uploaded
+    # 7) Sparkle effect placeholder (no reference image display here)
     if uploaded_file is not None:
-        st.markdown("### Reference Image")
-        st.image(uploaded_file, use_column_width=True)
+        st.markdown("### Waiting for generation...")
+        st.markdown("""
+        <div style="display: flex; justify-content: center; align-items: center; height: 300px;">
+            <div class="sparkle-container">
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+                <p style="color: #888; font-size: 14px; margin-top: 20px;">Preparing your image...</p>
+            </div>
+        </div>
+        
+        <style>
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        .sparkle-container {
+            text-align: center;
+        }
+        .sparkle {
+            display: inline-block;
+            font-size: 40px;
+            animation: sparkle 1.5s ease-in-out infinite;
+            margin: 0 10px;
+        }
+        .sparkle:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        .sparkle:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        </style>
+        """, unsafe_allow_html=True)
 
 # Generation Logic
 if generate_btn:
-    st.divider()
+    # 7) Sparkle effect during generation (no progress bar)
+    with col2:
+        st.markdown("### Generating...")
+        sparkle_placeholder = st.empty()
+        sparkle_placeholder.markdown("""
+        <div style="display: flex; justify-content: center; align-items: center; height: 400px;">
+            <div class="sparkle-container">
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+                <p style="color: #888; font-size: 16px; margin-top: 20px;">Creating your masterpiece...</p>
+            </div>
+        </div>
+        
+        <style>
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.5) rotate(180deg); }
+        }
+        .sparkle-container {
+            text-align: center;
+        }
+        .sparkle {
+            display: inline-block;
+            font-size: 50px;
+            animation: sparkle 1.5s ease-in-out infinite;
+            margin: 0 15px;
+        }
+        .sparkle:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        .sparkle:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    
     status_text = st.empty()
-    progress_bar = st.progress(0)
     
     # 1. Send request (POST)
     # Legacy API supports both Text-to-Image and Image-to-Image
@@ -310,9 +377,6 @@ if generate_btn:
             for i in range(150):
                 time.sleep(2)
                 
-                current_val = int(min((i + 1) / 40 * 100, 95))
-                progress_bar.progress(current_val)
-                
                 # Legacy API polling
                 check_url = f"{check_url_base}/{request_id}"
                 check_res = requests.get(check_url, headers={'x-api-key': api_key})
@@ -342,16 +406,19 @@ if generate_btn:
                                 img_size_kb = 0
                                 img_dimensions = "Unknown"
                             
-                            # Add to history with metadata
+                            # 5) Add to history with full prompt (final_prompt)
                             st.session_state.generated_images.append({
                                 "url": img_url,
-                                "prompt": prompt_text,
+                                "prompt": final_prompt,  # Full prompt with style + aspect ratio
                                 "model": selected_model_short,
                                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "size_kb": f"{img_size_kb:.1f}",
                                 "dimensions": img_dimensions,
                                 "reference_image": uploaded_file.name if uploaded_file else None
                             })
+                            
+                            # Clear sparkle effect
+                            sparkle_placeholder.empty()
                             
                             with col2:
                                 st.balloons()
