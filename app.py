@@ -55,21 +55,19 @@ with st.sidebar:
         # Show last 10 images in reverse order (newest first)
         for idx, img_data in enumerate(reversed(st.session_state.generated_images[-10:])):
             with st.container():
-                cols = st.columns([3, 1, 1])
+                st.image(img_data["url"], use_column_width=True)
                 
-                with cols[0]:
-                    st.image(img_data["url"], use_column_width=True)
-                    st.caption(f"{img_data['model']} | {img_data['timestamp']}")
-                    with st.expander("プロンプト"):
-                        st.text(img_data["prompt"][:100] + "..." if len(img_data["prompt"]) > 100 else img_data["prompt"])
+                # Model, timestamp, and size info
+                st.caption(f"🤖 {img_data['model']} | 🕒 {img_data['timestamp']}")
+                if "size_kb" in img_data and "dimensions" in img_data:
+                    st.caption(f"📊 {img_data['size_kb']} KB | 📎 {img_data['dimensions']}")
                 
-                with cols[1]:
-                    st.markdown(f"[📥]({img_data['url']})")
+                # Prompt (collapsible)
+                with st.expander("📝 プロンプト"):
+                    st.text(img_data["prompt"][:150] + "..." if len(img_data["prompt"]) > 150 else img_data["prompt"])
                 
-                with cols[2]:
-                    # TODO: Implement "Use as reference" button
-                    # This is complex in Streamlit
-                    pass
+                # Download link
+                st.markdown(f"[📥 ダウンロード]({img_data['url']})")
                 
                 st.markdown("---")
     else:
@@ -320,19 +318,44 @@ if generate_btn:
                                   res_data.get("output_url"))
                         
                         if img_url:
-                            # Add to history
+                            # Get image metadata
+                            try:
+                                img_response = requests.get(img_url)
+                                img_size_kb = len(img_response.content) / 1024
+                                img_pil = Image.open(BytesIO(img_response.content))
+                                img_dimensions = f"{img_pil.width}x{img_pil.height}"
+                            except:
+                                img_size_kb = 0
+                                img_dimensions = "Unknown"
+                            
+                            # Add to history with metadata
                             st.session_state.generated_images.append({
                                 "url": img_url,
                                 "prompt": prompt_text,
                                 "model": selected_model_short,
-                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                "size_kb": f"{img_size_kb:.1f}",
+                                "dimensions": img_dimensions,
+                                "reference_image": uploaded_file.name if uploaded_file else None
                             })
                             
                             with col2:
                                 st.balloons()
                                 st.success("✨ Generation complete!")
-                                st.image(img_url, caption="Generated Result")
-                                st.markdown(f"[Download Image]({img_url})")
+                                
+                                # Show reference image and generated image side by side for Image-to-Image
+                                if uploaded_file is not None:
+                                    st.markdown("### 🔄 Before & After")
+                                    compare_cols = st.columns(2)
+                                    with compare_cols[0]:
+                                        st.image(uploaded_file, caption="参照画像 (Reference)", use_column_width=True)
+                                    with compare_cols[1]:
+                                        st.image(img_url, caption="生成画像 (Generated)", use_column_width=True)
+                                else:
+                                    st.image(img_url, caption="Generated Result")
+                                
+                                st.markdown(f"[📥 Download Image]({img_url})")
+                                st.caption(f"📊 サイズ: {img_size_kb:.1f} KB | 📎 解像度: {img_dimensions}")
                         else:
                             st.warning("Completed but image URL not found.")
                             st.caption("Received data:")
