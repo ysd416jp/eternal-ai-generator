@@ -32,14 +32,14 @@ def load_api_key():
 st.set_page_config(page_title="EternalAI Image Generator", layout="wide")
 
 # Compact title (small and humble)
-st.markdown("<p style='text-align: center; color: #888; font-size: 14px; margin: 5px 0;'>🎨 EternalAI Image Generator</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #888; font-size: 12px; margin: 0; padding: 0;'>EternalAI Image Generator</p>", unsafe_allow_html=True)
 
 # Get prompt from URL parameter (from translation site)
 query_params = st.query_params
 url_prompt = query_params.get("prompt", None)
 
 if url_prompt:
-    st.success("✅ 翻訳サイトからプロンプトを受け取りました！")
+    st.success("Prompt received from translation site")
 
 api_key = load_api_key()
 if not api_key:
@@ -48,7 +48,7 @@ if not api_key:
 
 # Sidebar: Image Gallery (Ultra Compact for maximum density)
 with st.sidebar:
-    st.markdown("<p style='font-size:16px; margin:0;'>📸 履歴 ({0})</p>".format(len(st.session_state.generated_images)), unsafe_allow_html=True)
+    st.markdown("<p style='font-size:14px; margin:0; padding:5px 0;'>History ({0})</p>".format(len(st.session_state.generated_images)), unsafe_allow_html=True)
     
     if len(st.session_state.generated_images) > 0:
         st.markdown("<hr style='margin:5px 0;'>", unsafe_allow_html=True)
@@ -63,14 +63,14 @@ with st.sidebar:
             # Tiny buttons
             cols = st.columns([1, 1])
             with cols[0]:
-                if st.button("📝", key=f"p_{idx}", help="Prompt"):
+                if st.button("P", key=f"p_{idx}", help="Prompt"):
                     st.caption(img_data["prompt"][:80])
             with cols[1]:
-                st.markdown(f"<a href='{img_data['url']}' download style='font-size:10px;'>📥</a>", unsafe_allow_html=True)
+                st.markdown(f"<a href='{img_data['url']}' download style='font-size:10px;'>DL</a>", unsafe_allow_html=True)
             
             st.markdown("<hr style='margin:3px 0; opacity:0.3;'>", unsafe_allow_html=True)
     else:
-        st.info("未生成")
+        st.info("No images yet")
 
 # Style Presets
 STYLE_PRESETS = {
@@ -88,23 +88,20 @@ col1, col2 = st.columns([1, 1])
 with col1:
     # Style preset selector
     selected_style = st.selectbox(
-        "🎨 スタイルプリセット",
+        "Style Preset",
         options=list(STYLE_PRESETS.keys())
     )
     
     # Show selected style description (compact)
     if selected_style != "None (カスタムのみ)":
-        with st.expander("ℹ️ スタイル詳細"):
+        with st.expander("Style Details"):
             st.caption(STYLE_PRESETS[selected_style])
     
     prompt_text = st.text_area(
-        "📝 Prompt (English)", 
-        height=100,
+        "Prompt (English)", 
+        height=80,
         value=url_prompt if url_prompt else "A beautiful Japanese woman in her 30s, wearing a white coat"
     )
-    
-    # 🤖 Model selection (Compact horizontal radio)
-    st.markdown("🤖 **モデル**")
     
     model_options = {
         "Qwen": "Qwen-Image-Edit-2509",
@@ -131,33 +128,61 @@ with col1:
     )
     
     selected_model_id = model_options[selected_model_short]
-    st.caption(f"📝 {model_full_names[selected_model_short]}")
     
-    # Image upload (reference image) - Image-to-Image mode
-    mode_tabs = st.tabs(["📝 Text-to-Image", "🖼️ Image-to-Image"])
+    # Aspect Ratio selection
+    st.markdown("**Aspect Ratio**")
+    aspect_ratio_options = {
+        "Auto": "auto",
+        "21:9": "21:9",
+        "16:9": "16:9",
+        "4:3": "4:3",
+        "1:1": "1:1",
+        "9:16": "9:16"
+    }
     
-    with mode_tabs[0]:
-        st.caption("参照画像なしでゼロから生成します")
+    selected_aspect_ratio = st.radio(
+        "aspect_label",
+        options=list(aspect_ratio_options.keys()),
+        horizontal=True,
+        index=0,
+        label_visibility="collapsed"
+    )
     
-    with mode_tabs[1]:
-        uploaded_file = st.file_uploader(
-            "参照画像をアップロード", 
-            type=["jpg", "jpeg", "png", "webp"]
-        )
+    selected_aspect_value = aspect_ratio_options[selected_aspect_ratio]
+    
+    # Image upload (reference image) - Simple, no tabs
+    uploaded_file = st.file_uploader(
+        "Reference Image (Optional)", 
+        type=["jpg", "jpeg", "png", "webp"],
+        help="Upload a reference image for Image-to-Image generation"
+    )
+    
+    # Show reference image immediately when uploaded
+    if uploaded_file is not None:
+        st.image(uploaded_file, caption="Reference Image", use_column_width=True)
         
-        if uploaded_file is not None:
-            # Denoising strength slider (compact)
-            denoising_strength = st.slider(
-                "🎚️ 変更度",
-                min_value=0.1,
-                max_value=0.9,
-                value=0.5,
-                step=0.1
-            )
-        else:
-            denoising_strength = 0.5
+        # Denoising strength slider with larger handle
+        st.markdown("""
+        <style>
+        div[data-baseweb="slider"] > div > div > div > div {
+            width: 20px !important;
+            height: 20px !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        denoising_strength = st.slider(
+            "Denoising Strength",
+            min_value=0.1,
+            max_value=0.9,
+            value=0.6,
+            step=0.1,
+            help="Lower: subtle changes, Higher: dramatic changes"
+        )
+    else:
+        denoising_strength = 0.6
     
-    generate_btn = st.button("🚀 Generate", type="primary")
+    generate_btn = st.button("Generate", type="primary")
 
 # Generation Logic
 if generate_btn:
@@ -174,6 +199,10 @@ if generate_btn:
     final_prompt = prompt_text
     if selected_style != "None (カスタムのみ)":
         final_prompt = f"{prompt_text}, {STYLE_PRESETS[selected_style]}"
+    
+    # Add aspect ratio to prompt (if not Auto)
+    if selected_aspect_value != "auto":
+        final_prompt = f"{final_prompt}, aspect ratio {selected_aspect_value}"
     
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
@@ -236,16 +265,16 @@ if generate_btn:
         
         # Debug: show payload (collapsible)
         with col2:
-            with st.expander("🔍 デバッグ情報（クリックで展開）", expanded=False):
-                st.info("📤 Sending payload:")
+            with st.expander("Debug Info (Click to expand)", expanded=False):
+                st.info("Sending payload:")
                 st.json(payload)
         
         response = requests.post(url_create, headers=headers, json=payload)
         
         # Show response for debugging (collapsible)
         with col2:
-            with st.expander("🔍 デバッグ情報（クリックで展開）", expanded=False):
-                st.info(f"📡 Response Status: {response.status_code}")
+            with st.expander("Debug Info (Click to expand)", expanded=False):
+                st.info(f"Response Status: {response.status_code}")
                 if response.status_code != 200:
                     st.error(f"Response: {response.text}")
         
@@ -254,17 +283,17 @@ if generate_btn:
             request_id = data.get("request_id") or data.get("id")
             
             with col2:
-                with st.expander("🔍 デバッグ情報（クリックで展開）", expanded=False):
-                    st.success(f"✅ Request sent! ID: {request_id}")
+                with st.expander("Debug Info (Click to expand)", expanded=False):
+                    st.success(f"Request sent! ID: {request_id}")
                     st.json(data)  # Show full response
             
             # Legacy API polling (correct endpoint with /creative-ai/)
             check_url_base = "https://open.eternalai.org/creative-ai/poll-result"
             
             if image_base64:
-                st.caption("ℹ️ Generating image (Image-to-Image mode)... (typically takes 45s - 1min)")
+                st.caption("Generating image (Image-to-Image mode)... typically 45s-1min")
             else:
-                st.caption("ℹ️ Generating image... (typically takes 45s - 1min)")
+                st.caption("Generating image... typically 45s-1min")
             
             # 2. Polling loop (max 5 minutes)
             status_text.text("Processing... (max 5 minutes)")
@@ -286,7 +315,7 @@ if generate_btn:
                     # Debug: show polling response every 10 iterations (collapsible)
                     if i % 10 == 0:
                         with col2:
-                            with st.expander("🔍 デピバッグ情報（クリックで展開）", expanded=False):
+                            with st.expander("Debug Info (Click to expand)", expanded=False):
                                 st.caption(f"Polling {i}: {status}")
                                 st.json(res_data)
                     
@@ -324,21 +353,21 @@ if generate_btn:
                             
                             with col2:
                                 st.balloons()
-                                st.success("✨ Generation complete!")
+                                st.success("Generation complete!")
                                 
                                 # Show reference image and generated image side by side for Image-to-Image
                                 if uploaded_file is not None:
-                                    st.markdown("### 🔄 Before & After")
+                                    st.markdown("### Before & After")
                                     compare_cols = st.columns(2)
                                     with compare_cols[0]:
-                                        st.image(uploaded_file, caption="📥 参照画像", use_column_width=True)
+                                        st.image(uploaded_file, caption="Reference", use_column_width=True)
                                     with compare_cols[1]:
-                                        st.image(img_url, caption="✨ 生成画像", use_column_width=True)
+                                        st.image(img_url, caption="Generated", use_column_width=True)
                                 else:
-                                    st.image(img_url, caption="✨ Generated Result", use_column_width=True)
+                                    st.image(img_url, caption="Generated Result", use_column_width=True)
                                 
-                                st.markdown(f"[📥 Download Image]({img_url})")
-                                st.caption(f"📊 サイズ: {img_size_kb:.1f} KB | 📎 解像度: {img_dimensions}")
+                                st.markdown(f"[Download Image]({img_url})")
+                                st.caption(f"Size: {img_size_kb:.1f} KB | Resolution: {img_dimensions}")
                         else:
                             st.warning("Completed but image URL not found.")
                             st.caption("Received data:")
