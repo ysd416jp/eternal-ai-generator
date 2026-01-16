@@ -6,6 +6,11 @@ import os
 import base64
 from io import BytesIO
 from PIL import Image
+import datetime
+
+# Initialize session state for image history
+if "generated_images" not in st.session_state:
+    st.session_state.generated_images = []
 
 # API key configuration
 KEY_FILE_PATH = "/Users/yoichiroyoshida/my_ai_app/eternal_api_key.txt"
@@ -39,6 +44,36 @@ api_key = load_api_key()
 if not api_key:
     st.error("API key not found")
     st.stop()
+
+# Sidebar: Image Gallery
+with st.sidebar:
+    st.header("📸 生成履歴")
+    st.caption(f"セッション内: {len(st.session_state.generated_images)}枚")
+    
+    if len(st.session_state.generated_images) > 0:
+        st.markdown("---")
+        # Show last 10 images in reverse order (newest first)
+        for idx, img_data in enumerate(reversed(st.session_state.generated_images[-10:])):
+            with st.container():
+                cols = st.columns([3, 1, 1])
+                
+                with cols[0]:
+                    st.image(img_data["url"], use_column_width=True)
+                    st.caption(f"{img_data['model']} | {img_data['timestamp']}")
+                    with st.expander("プロンプト"):
+                        st.text(img_data["prompt"][:100] + "..." if len(img_data["prompt"]) > 100 else img_data["prompt"])
+                
+                with cols[1]:
+                    st.markdown(f"[📥]({img_data['url']})")
+                
+                with cols[2]:
+                    # TODO: Implement "Use as reference" button
+                    # This is complex in Streamlit
+                    pass
+                
+                st.markdown("---")
+    else:
+        st.info("まだ画像が生成されていません")
 
 # Style Presets
 STYLE_PRESETS = {
@@ -75,38 +110,36 @@ with col1:
         help="基本的なプロンプトを入力してください。スタイルプリセットは自動的に追加されます。"
     )
     
-    # 🤖 Model selection
+    # 🤖 Model selection (Compact horizontal radio)
     st.markdown("---")
-    st.info("🤖 生成モデル選択")
+    st.markdown("🤖 **モデル選択**")
     
     model_options = {
-        "Qwen Image Edit (最も柔軟・最安)": "Qwen-Image-Edit-2509",
-        "Nano Banana Pro (最高品質・高速)": "gemini-3-pro-image-preview",
-        "Nano Banana (高品質)": "gemini-2.5-flash-image",
-        "Seedream 4.5 (新モデル)": "seedream-4-5-251128",
-        "Flux 2 Pro (高品質)": "flux-2-pro"
+        "Qwen": "Qwen-Image-Edit-2509",
+        "NB Pro": "gemini-3-pro-image-preview",
+        "NB": "gemini-2.5-flash-image",
+        "SD4.5": "seedream-4-5-251128",
+        "Flux": "flux-2-pro"
     }
     
-    model_descriptions = {
-        "Qwen Image Edit (最も柔軟・最安)": "🎨 創造的自由度が高い。18+対応。1 Diamond（最安）。実は最新版2511。",
-        "Nano Banana Pro (最高品質・高速)": "👑 顔と照明の保存が最高。リアルなポートレートに最適。高速処理。",
-        "Nano Banana (高品質)": "⚡ 高品質で高速。バランスの取れた選択。",
-        "Seedream 4.5 (新モデル)": "🌟 最新モデル。高解像度とリアルな表現。",
-        "Flux 2 Pro (高品質)": "💎 プロフェッショナル品質。高度な生成能力。"
+    model_full_names = {
+        "Qwen": "Qwen Image Edit (最も柔軟・最安・18+)",
+        "NB Pro": "Nano Banana Pro (最高品質・高速)",
+        "NB": "Nano Banana (高品質)",
+        "SD4.5": "Seedream 4.5 (新モデル)",
+        "Flux": "Flux 2 Pro (プロ品質)"
     }
     
-    selected_model_display = st.selectbox(
-        "モデルを選択",
+    selected_model_short = st.radio(
+        "label",
         options=list(model_options.keys()),
-        index=0,  # デフォルト: Qwen (最安・最も柔軟)
-        help="用途に応じてモデルを選択してください。Qwen が最もコスパが良く柔軟です。"
+        horizontal=True,
+        index=0,
+        label_visibility="collapsed"
     )
     
-    selected_model_id = model_options[selected_model_display]
-    
-    # Show model description
-    st.caption(model_descriptions[selected_model_display])
-    st.caption(f"📝 モデルID: `{selected_model_id}`")
+    selected_model_id = model_options[selected_model_short]
+    st.caption(f"📝 {model_full_names[selected_model_short]}")
     
     # Image upload (reference image) - Image-to-Image mode
     st.markdown("---")
@@ -160,18 +193,6 @@ if generate_btn:
     final_prompt = prompt_text
     if selected_style != "None (カスタムのみ)":
         final_prompt = f"{prompt_text}, {STYLE_PRESETS[selected_style]}"
-    
-    # Show final prompt
-    with col2:
-        st.info("📝 最終プロンプト:")
-        st.text_area("Combined Prompt", value=final_prompt, height=150, disabled=True)
-        
-        # Show Image-to-Image info if image uploaded
-        if uploaded_file is not None:
-            st.info("🖼️ Image-to-Image モード")
-            st.caption(f"変更度: {denoising_strength}")
-            st.caption(f"ファイル名: {uploaded_file.name}")
-            st.caption(f"ファイルサイズ: {uploaded_file.size / 1024:.2f} KB")
     
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
@@ -232,26 +253,29 @@ if generate_btn:
     try:
         status_text.text("Sending request...")
         
-        # Debug: show payload
+        # Debug: show payload (collapsible)
         with col2:
-            st.info("📤 Sending payload:")
-            st.json(payload)
+            with st.expander("🔍 デバッグ情報（クリックで展開）", expanded=False):
+                st.info("📤 Sending payload:")
+                st.json(payload)
         
         response = requests.post(url_create, headers=headers, json=payload)
         
-        # Show response for debugging
+        # Show response for debugging (collapsible)
         with col2:
-            st.info(f"📡 Response Status: {response.status_code}")
-            if response.status_code != 200:
-                st.error(f"Response: {response.text}")
+            with st.expander("🔍 デバッグ情報（クリックで展開）", expanded=False):
+                st.info(f"📡 Response Status: {response.status_code}")
+                if response.status_code != 200:
+                    st.error(f"Response: {response.text}")
         
         if response.status_code == 200:
             data = response.json()
             request_id = data.get("request_id") or data.get("id")
             
             with col2:
-                st.success(f"✅ Request sent! ID: {request_id}")
-                st.json(data)  # Show full response
+                with st.expander("🔍 デバッグ情報（クリックで展開）", expanded=False):
+                    st.success(f"✅ Request sent! ID: {request_id}")
+                    st.json(data)  # Show full response
             
             # Legacy API polling (correct endpoint with /creative-ai/)
             check_url_base = "https://open.eternalai.org/creative-ai/poll-result"
@@ -278,11 +302,12 @@ if generate_btn:
                     res_data = check_res.json()
                     status = res_data.get("status")
                     
-                    # Debug: show polling response every 10 iterations
+                    # Debug: show polling response every 10 iterations (collapsible)
                     if i % 10 == 0:
                         with col2:
-                            st.caption(f"Polling {i}: {status}")
-                            st.json(res_data)
+                            with st.expander("🔍 デピバッグ情報（クリックで展開）", expanded=False):
+                                st.caption(f"Polling {i}: {status}")
+                                st.json(res_data)
                     
                     if status in ["done", "success", "completed"]:
                         progress_bar.progress(100)
@@ -295,6 +320,14 @@ if generate_btn:
                                   res_data.get("output_url"))
                         
                         if img_url:
+                            # Add to history
+                            st.session_state.generated_images.append({
+                                "url": img_url,
+                                "prompt": prompt_text,
+                                "model": selected_model_short,
+                                "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            })
+                            
                             with col2:
                                 st.balloons()
                                 st.success("✨ Generation complete!")
