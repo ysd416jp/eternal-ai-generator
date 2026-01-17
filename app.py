@@ -63,7 +63,19 @@ st.markdown("""
     
     /* Minimize vertical spacing */
     .stTextArea, .stTextInput {
-        margin-bottom: 0.2rem !important;
+        margin-bottom: 0.1rem !important;
+    }
+    
+    /* Ultra compact spacing */
+    div[data-testid="stVerticalBlock"] > div {
+        padding-bottom: 0rem !important;
+        margin-bottom: 0rem !important;
+    }
+    
+    /* Compact labels */
+    label {
+        font-size: 10px !important;
+        margin-bottom: 0.1rem !important;
     }
     
     /* Compact buttons */
@@ -74,11 +86,26 @@ st.markdown("""
         min-height: 24px !important;
     }
     
-    /* Compact text areas - 細く・フォント小さく */
+    /* Compact text areas - さらに細く・フォント小さく */
     .stTextArea textarea {
-        font-size: 11px !important;
-        padding: 0.3rem !important;
-        line-height: 1.2 !important;
+        font-size: 10px !important;
+        padding: 0.2rem !important;
+        line-height: 1.1 !important;
+        min-height: 15px !important;
+    }
+    
+    /* Compact file uploader - さらに縮小 */
+    .stFileUploader {
+        margin-bottom: 0.1rem !important;
+    }
+    
+    .stFileUploader label {
+        font-size: 10px !important;
+        padding: 0.2rem !important;
+    }
+    
+    .stFileUploader > div {
+        padding: 0.2rem !important;
     }
     
     /* Align buttons and text boxes */
@@ -349,16 +376,6 @@ STYLE_PRESETS = {
     "Landscape": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range"
 }
 
-# Main Layout
-# Style Presets (English only, no icons)
-STYLE_PRESETS = {
-    "None (Custom)": "",
-    "Realistic Portrait": "photorealistic, professional portrait photography, natural lighting, shot on Canon EOS R5, 85mm f/1.2, natural skin texture, realistic features, shallow depth of field, soft studio lighting, lifelike",
-    "Cinematic": "cinematic photography, film grain, anamorphic lens, natural color grading, shot on ARRI Alexa, dramatic lighting, movie still, cinematic composition",
-    "Street Photography": "candid street photography, natural lighting, realistic atmosphere, documentary style, shot on Leica M10, 35mm lens, photojournalism, authentic moment",
-    "Landscape": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range"
-}
-
 # Input Area
 col1, col2 = st.columns([1, 1])
 with col1:
@@ -413,18 +430,18 @@ with col1:
         preset_content = st.text_area(
             "Preset Editor",
             value=st.session_state.get('custom_preset', ''),
-            height=35,
+            height=20,
             key="preset_editor",
             placeholder="Edit preset style..."
         )
         st.session_state.custom_preset = preset_content
     
-    # Translation Area (3 rows) - 最小サイズ
+    # Translation Area (3 rows) - 2行分
     col_jp, col_t9e = st.columns([9, 1])
     with col_jp:
         japanese_prompt = st.text_area(
             "",
-            height=25,
+            height=15,
             placeholder="例: 20代の日本人女性がオフィスで働いている様子。全身ショット。",
             key="japanese_prompt"
         )
@@ -509,7 +526,7 @@ Translate accurately based on the actual content."""
         hermes_result = st.text_area(
             "",
             value=st.session_state.translations.get("Hermes-3-Llama-3.1-405B", ""),
-            height=25,
+            height=15,
             disabled=True,
             placeholder="Hermes-3-Llama-3.1-405B",
             key="hermes_result"
@@ -527,7 +544,7 @@ Translate accurately based on the actual content."""
         deepseek_result = st.text_area(
             "",
             value=st.session_state.translations.get("DeepSeek-V3", ""),
-            height=25,
+            height=15,
             disabled=True,
             placeholder="DeepSeek-V3",
             key="deepseek_result"
@@ -539,10 +556,10 @@ Translate accurately based on the actual content."""
                 st.session_state.user_prompt = deepseek_result
                 st.rerun()
     
-    # Prompt (English) - 最小サイズ
+    # Prompt (English) - 2行分
     user_prompt_input = st.text_area(
         "Prompt (English)", 
-        height=35,
+        height=20,
         value=st.session_state.get('user_prompt', ''),
         key="user_prompt_field"
     )
