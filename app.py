@@ -516,7 +516,7 @@ if generate_btn:
         </div>
         """, unsafe_allow_html=True)
     
-    # Show sparkle effect ✨ during generation
+    # Show sparkle effect ✨ during generation (force emoji rendering)
     after_placeholder.markdown("""
     <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
         <div class="sparkle-container">
@@ -528,17 +528,29 @@ if generate_btn:
     
     <style>
     @keyframes sparkle {
-        0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-        50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+        0%, 100% { 
+            opacity: 0; 
+            transform: scale(0.5) rotate(0deg); 
+        }
+        50% { 
+            opacity: 1; 
+            transform: scale(1.3) rotate(180deg); 
+        }
     }
     .sparkle-container {
         text-align: center;
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif !important;
     }
     .sparkle {
         display: inline-block;
-        font-size: 25px;
+        font-size: 40px !important;
         animation: sparkle 1.5s ease-in-out infinite;
-        margin: 0 8px;
+        margin: 0 10px;
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif !important;
+        line-height: 1;
+    }
+    .sparkle:nth-child(1) {
+        animation-delay: 0s;
     }
     .sparkle:nth-child(2) {
         animation-delay: 0.3s;
