@@ -459,111 +459,122 @@ if generate_btn:
         </div>
         """, unsafe_allow_html=True)
     
-    # Show stylish purple particle effect in After area (無限ループ + 滑らか)
+    # Show stylish purple particle effect in center (中央でキラキラ + 無限ループ)
     after_placeholder.markdown("""
     <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden; background-color: #0E1117;">
-        <div class="particle-container">
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
-            <div class="particle"></div>
+        <div class="sparkle-center">
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
+            <div class="sparkle-particle"></div>
         </div>
     </div>
     
     <style>
-    @keyframes floatUp {
+    @keyframes sparkleRotate {
         0% {
-            transform: translateY(200px) translateX(0px);
+            transform: rotate(0deg) translateX(0px) scale(0);
             opacity: 0;
         }
         10% {
             opacity: 1;
+            transform: rotate(36deg) translateX(30px) scale(1);
+        }
+        50% {
+            opacity: 1;
+            transform: rotate(180deg) translateX(50px) scale(1.2);
         }
         90% {
             opacity: 1;
+            transform: rotate(324deg) translateX(30px) scale(1);
         }
         100% {
-            transform: translateY(-50px) translateX(30px);
+            transform: rotate(360deg) translateX(0px) scale(0);
             opacity: 0;
         }
     }
     
-    @keyframes wave {
+    @keyframes pulse {
         0%, 100% {
-            transform: translateX(0px);
-        }
-        25% {
-            transform: translateX(15px);
+            box-shadow: 0 0 20px #8B5CF6, 0 0 40px #8B5CF6, 0 0 60px #8B5CF650;
         }
         50% {
-            transform: translateX(0px);
-        }
-        75% {
-            transform: translateX(-15px);
+            box-shadow: 0 0 30px #A78BFA, 0 0 60px #A78BFA, 0 0 90px #A78BFA50;
         }
     }
     
-    .particle-container {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        top: 0;
-        left: 0;
+    .sparkle-center {
+        position: relative;
+        width: 120px;
+        height: 120px;
     }
     
-    .particle {
+    .sparkle-particle {
         position: absolute;
-        bottom: 0;
-        width: 10px;
-        height: 10px;
-        background: radial-gradient(circle, #A78BFA, #8B5CF6);
+        top: 50%;
+        left: 50%;
+        width: 8px;
+        height: 8px;
+        margin: -4px 0 0 -4px;
+        background: radial-gradient(circle, #FFFFFF, #A78BFA, #8B5CF6);
         border-radius: 50%;
-        box-shadow: 0 0 15px #8B5CF6, 0 0 30px #8B5CF6, 0 0 45px #8B5CF650;
-        animation: floatUp 4s ease-in-out infinite, wave 3s ease-in-out infinite;
+        animation: sparkleRotate 3s ease-in-out infinite, pulse 1.5s ease-in-out infinite;
     }
     
-    .particle:nth-child(1) {
-        left: 15%;
+    .sparkle-particle:nth-child(1) {
         animation-delay: 0s, 0s;
     }
     
-    .particle:nth-child(2) {
-        left: 30%;
-        animation-delay: 0.5s, 0.3s;
+    .sparkle-particle:nth-child(2) {
+        animation-delay: 0.25s, 0.125s;
     }
     
-    .particle:nth-child(3) {
-        left: 45%;
-        animation-delay: 1s, 0.6s;
+    .sparkle-particle:nth-child(3) {
+        animation-delay: 0.5s, 0.25s;
     }
     
-    .particle:nth-child(4) {
-        left: 60%;
-        animation-delay: 1.5s, 0.9s;
+    .sparkle-particle:nth-child(4) {
+        animation-delay: 0.75s, 0.375s;
     }
     
-    .particle:nth-child(5) {
-        left: 75%;
-        animation-delay: 2s, 1.2s;
+    .sparkle-particle:nth-child(5) {
+        animation-delay: 1s, 0.5s;
     }
     
-    .particle:nth-child(6) {
-        left: 25%;
-        animation-delay: 2.5s, 1.5s;
+    .sparkle-particle:nth-child(6) {
+        animation-delay: 1.25s, 0.625s;
     }
     
-    .particle:nth-child(7) {
-        left: 50%;
-        animation-delay: 3s, 1.8s;
+    .sparkle-particle:nth-child(7) {
+        animation-delay: 1.5s, 0.75s;
     }
     
-    .particle:nth-child(8) {
-        left: 85%;
-        animation-delay: 3.5s, 2.1s;
+    .sparkle-particle:nth-child(8) {
+        animation-delay: 1.75s, 0.875s;
+    }
+    
+    .sparkle-particle:nth-child(9) {
+        animation-delay: 2s, 1s;
+    }
+    
+    .sparkle-particle:nth-child(10) {
+        animation-delay: 2.25s, 1.125s;
+    }
+    
+    .sparkle-particle:nth-child(11) {
+        animation-delay: 2.5s, 1.25s;
+    }
+    
+    .sparkle-particle:nth-child(12) {
+        animation-delay: 2.75s, 1.375s;
     }
     </style>
     """, unsafe_allow_html=True)
