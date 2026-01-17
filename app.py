@@ -414,13 +414,28 @@ with col1:
     with col_t9e:
         st.write("")  # Spacing
         if st.button("T9E", key="translate_btn", use_container_width=True, type="secondary"):
-            if japanese_prompt and st.session_state.openrouter_api_key:
+            # Debug: Check API key
+            if not st.session_state.openrouter_api_key:
+                st.error("⚠️ OpenRouter API Key が設定されていません。ページ下部で設定してください。")
+            elif not japanese_prompt:
+                st.warning("⚠️ 日本語プロンプトを入力してください。")
+            else:
                 models = {
                     "Hermes-3-Llama-3.1-405B": "nousresearch/hermes-3-llama-3.1-405b",
                     "DeepSeek-V3": "deepseek/deepseek-chat"
                 }
                 
                 st.session_state.translations = {}
+                
+                # System prompt for better translation
+                system_prompt = """You are a professional Japanese-to-English translator specializing in AI image generation prompts.
+
+TRANSLATION RULES:
+1. ACCURACY FIRST: Translate Japanese text literally and accurately into English
+2. PRESERVE ORIGINAL MEANING: Do NOT add descriptive words, emotions, or atmosphere that are NOT in the original Japanese
+3. OUTPUT FORMAT: Provide ONLY the English translation, no explanations
+
+Translate accurately based on the actual content."""
                 
                 with st.spinner("翻訳中..."):
                     for model_name, model_id in models.items():
@@ -429,25 +444,40 @@ with col1:
                                 "https://openrouter.ai/api/v1/chat/completions",
                                 headers={
                                     "Authorization": f"Bearer {st.session_state.openrouter_api_key}",
-                                    "Content-Type": "application/json"
+                                    "Content-Type": "application/json",
+                                    "HTTP-Referer": "https://eternal-ai-generator.streamlit.app",
+                                    "X-Title": "EternalAI Image Generator"
                                 },
                                 json={
                                     "model": model_id,
-                                    "messages": [{
-                                        "role": "user",
-                                        "content": f"Translate the following Japanese text to English for image generation prompt. Keep it concise and descriptive:\n\n{japanese_prompt}"
-                                    }]
+                                    "messages": [
+                                        {"role": "system", "content": system_prompt},
+                                        {"role": "user", "content": japanese_prompt}
+                                    ],
+                                    "temperature": 0.9
                                 },
                                 timeout=30
                             )
                             
                             if response.status_code == 200:
-                                translation = response.json()["choices"][0]["message"]["content"]
-                                st.session_state.translations[model_name] = translation
+                                data = response.json()
+                                if "choices" in data and len(data["choices"]) > 0:
+                                    translation = data["choices"][0]["message"]["content"].strip()
+                                    st.session_state.translations[model_name] = translation
+                                else:
+                                    st.session_state.translations[model_name] = f"Error: No translation returned"
                             else:
-                                st.session_state.translations[model_name] = f"Error: {response.status_code}"
+                                error_msg = response.text[:200] if response.text else "Unknown error"
+                                st.session_state.translations[model_name] = f"Error {response.status_code}: {error_msg}"
                         except Exception as e:
                             st.session_state.translations[model_name] = f"Error: {str(e)}"
+                
+                # Check if translation succeeded
+                if any(not v.startswith("Error") for v in st.session_state.translations.values()):
+                    st.success("✅ 翻訳完了！")
+                else:
+                    st.error("❌ 翻訳に失敗しました。API キーを確認してください。")
+                
                 st.rerun()
     
     # Hermes translation result + [Go]
