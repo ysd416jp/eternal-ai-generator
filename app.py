@@ -69,115 +69,6 @@ st.markdown("""
         height: 20px !important;
     }
     
-    /* Purple radio buttons - SIMPLE & CLEAN */
-    /* Streamlit radio button wrapper */
-    div[data-baseweb="radio"] {
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-    }
-    
-    /* Hide ALL inner elements */
-    div[data-baseweb="radio"] > div > div,
-    div[data-baseweb="radio"] > div > svg {
-        display: none !important;
-    }
-    
-    /* Radio button container */
-    div[data-baseweb="radio"] > div {
-        position: relative !important;
-        width: 18px !important;
-        height: 18px !important;
-        min-width: 18px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        border: 2px solid #8B5CF6 !important;
-        border-radius: 50% !important;
-        background-color: #0E1117 !important;
-        cursor: pointer !important;
-        flex-shrink: 0 !important;
-    }
-    
-    /* Checked state - white dot in center */
-    div[data-baseweb="radio"][data-checked="true"] > div::after {
-        content: '' !important;
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 8px !important;
-        height: 8px !important;
-        border-radius: 50% !important;
-        background-color: #FFFFFF !important;
-    }
-    
-    /* Input radio button (fallback for native inputs) */
-    input[type="radio"] {
-        appearance: none !important;
-        -webkit-appearance: none !important;
-        width: 18px !important;
-        height: 18px !important;
-        min-width: 18px !important;
-        border: 2px solid #8B5CF6 !important;
-        border-radius: 50% !important;
-        background-color: #0E1117 !important;
-        cursor: pointer !important;
-        position: relative !important;
-        margin: 0 8px 0 0 !important;
-        padding: 0 !important;
-        flex-shrink: 0 !important;
-    }
-    
-    input[type="radio"]:checked {
-        background-color: #0E1117 !important;
-        border-color: #8B5CF6 !important;
-    }
-    
-    input[type="radio"]:checked::after {
-        content: '' !important;
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 8px !important;
-        height: 8px !important;
-        border-radius: 50% !important;
-        background-color: #FFFFFF !important;
-    }
-    
-    /* Radio button labels */
-    div[role="radiogroup"] label {
-        color: #E0E0E0 !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-    }
-    
-    /* Remove any extra spacing */
-    div[role="radiogroup"] {
-        gap: 12px !important;
-    }
-    
-    /* White Generate button with black text + smaller size */
-    button[kind="primary"] {
-        background-color: #FFFFFF !important;
-        border-color: #FFFFFF !important;
-        color: #000000 !important;
-        padding: 0.25rem 1rem !important;
-        font-size: 14px !important;
-        font-weight: 600 !important;
-    }
-    
-    button[kind="primary"]:hover {
-        background-color: #E0E0E0 !important;
-        border-color: #E0E0E0 !important;
-        color: #000000 !important;
-    }
-    
-    button[kind="primary"] p {
-        color: #000000 !important;
-    }
-    
     /* Dark mode for inputs */
     .stTextArea textarea, .stTextInput input, .stSelectbox select {
         background-color: #1E2329 !important;
@@ -261,17 +152,27 @@ with st.sidebar:
             # Unique ID for each image
             unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
             
-            # Image with overlay button (View only)
+            # Escape prompt for JavaScript (properly)
+            escaped_prompt = img_data['prompt'].replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '')
+            
+            # Unique button ID
+            button_id = f"copy_btn_{unique_id}"
+            
+            # Image with overlay buttons (View and Copy Prompt only)
             st.markdown(f"""
             <div style="position: relative; margin-bottom: 5px;">
                 <a href="{img_data['url']}" target="_blank">
                     <img src="{img_data['url']}" style="width: 100%; border-radius: 5px; cursor: pointer;" />
                 </a>
-                <div style="position: absolute; top: 5px; right: 5px;">
+                <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 3px;">
                     <a href="{img_data['url']}" target="_blank" 
                        style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">
                        View
                     </a>
+                    <button id="{button_id}" 
+                            onclick="navigator.clipboard.writeText('{escaped_prompt}').then(() => alert('Prompt copied!')).catch(err => {{ var textarea = document.createElement('textarea'); textarea.value = '{escaped_prompt}'; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); alert('Prompt copied!'); }});"
+                            style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; border: none; cursor: pointer; font-size: 9px;"
+                            title="Copy full prompt">📋</button>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -323,7 +224,7 @@ with col1:
     prompt_text = st.text_area(
         "Prompt (English)", 
         height=80,
-        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 20s working in an office. Full body shot."
+        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 30s, wearing a white coat"
     )
     
     model_options = {
@@ -385,19 +286,18 @@ with col1:
     generate_btn = st.button("Generate", type="primary")
 
 with col2:
-    # Always show Before & After structure (unified layout)
-    compare_cols = st.columns(2)
-    with compare_cols[0]:
-        st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
-        before_placeholder = st.empty()
-        if uploaded_file is not None:
-            # Image-to-Image: Show uploaded image
-            before_placeholder.image(uploaded_file, use_column_width=True)
-        # else: Text-to-Image will show dummy black image when Generate is clicked
-    
-    with compare_cols[1]:
-        st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
-        after_placeholder = st.empty()
+    # 3) Show Before & After structure (Before immediately when uploaded, After with sparkle during generation)
+    if uploaded_file is not None:
+        compare_cols = st.columns(2)
+        with compare_cols[0]:
+            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
+            st.image(uploaded_file, use_column_width=True)
+        with compare_cols[1]:
+            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
+            after_placeholder = st.empty()
+    else:
+        # Text-to-Image: Add spacing to align with Before/After header height
+        st.markdown("<p style='font-size:12px; margin:0; color:transparent;'>_</p>", unsafe_allow_html=True)
 
 # Generation Logic
 if generate_btn:
@@ -490,189 +390,75 @@ if generate_btn:
         'Content-Type': 'application/json'
     }
 
-    # Show dummy black image for Text-to-Image (in Before area)
-    if uploaded_file is None:
-        # Calculate aspect ratio dimensions
-        aspect_map = {
-            "21:9": (420, 180),
-            "16:9": (320, 180),
-            "4:3": (240, 180),
-            "1:1": (180, 180),
-            "9:16": (180, 320),
-            "auto": (180, 180)
-        }
-        width, height = aspect_map.get(selected_aspect_value, (180, 180))
+    # Show sparkle effect during generation
+    sparkle_text_placeholder = st.empty()
+    if uploaded_file is not None:
+        # Image-to-Image: Show sparkle in After placeholder
+        after_placeholder.markdown("""
+        <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+            <div class="sparkle-container">
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+            </div>
+        </div>
         
-        # Show dummy image in Before area (完全な暗黒)
-        before_placeholder.markdown(f"""
-        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px;"></div>
-        </div>
+        <style>
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+        }
+        .sparkle-container {
+            text-align: center;
+        }
+        .sparkle {
+            display: inline-block;
+            font-size: 25px;
+            animation: sparkle 1.5s ease-in-out infinite;
+            margin: 0 8px;
+        }
+        .sparkle:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        .sparkle:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        </style>
         """, unsafe_allow_html=True)
-    
-    # Show stylish purple particle effect - 360度ランダムに飛び立つ（原子核の電子）
-    after_placeholder.markdown("""
-    <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden; background-color: #0E1117;">
-        <div class="atom-container">
-            <div class="nucleus"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-        </div>
-    </div>
-    
-    <style>
-    @keyframes orbit1 {
-        0% {
-            transform: rotate(0deg) translateX(40px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(40px) rotate(-360deg);
-        }
-    }
-    
-    @keyframes orbit2 {
-        0% {
-            transform: rotate(0deg) translateX(60px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(60px) rotate(-360deg);
-        }
-    }
-    
-    @keyframes orbit3 {
-        0% {
-            transform: rotate(0deg) translateX(80px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(80px) rotate(-360deg);
-        }
-    }
-    
-    @keyframes glow {
-        0%, 100% {
-            box-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6, 0 0 30px #8B5CF650;
-        }
-        50% {
-            box-shadow: 0 0 15px #A78BFA, 0 0 30px #A78BFA, 0 0 45px #A78BFA50;
-        }
-    }
-    
-    @keyframes nucleusPulse {
-        0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 0 20px #8B5CF6, 0 0 40px #8B5CF6;
-        }
-        50% {
-            transform: scale(1.2);
-            box-shadow: 0 0 30px #A78BFA, 0 0 60px #A78BFA;
-        }
-    }
-    
-    .atom-container {
-        position: relative;
-        width: 200px;
-        height: 200px;
-    }
-    
-    .nucleus {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 12px;
-        height: 12px;
-        margin: -6px 0 0 -6px;
-        background: radial-gradient(circle, #FFFFFF, #A78BFA);
-        border-radius: 50%;
-        animation: nucleusPulse 3s ease-in-out infinite;
-        z-index: 2;
-    }
-    
-    .electron {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 8px;
-        height: 8px;
-        margin: -4px 0 0 -4px;
-        background: radial-gradient(circle, #FFFFFF, #A78BFA, #8B5CF6);
-        border-radius: 50%;
-        animation: glow 2s ease-in-out infinite;
-    }
-    
-    /* 内側の軌道（4個） */
-    .electron:nth-child(2) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0s;
-    }
-    
-    .electron:nth-child(3) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 1.5s, 0.5s;
-    }
-    
-    .electron:nth-child(4) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 3s, 1s;
-    }
-    
-    .electron:nth-child(5) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 4.5s, 1.5s;
-    }
-    
-    /* 中間の軌道（4個） */
-    .electron:nth-child(6) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0.2s;
-    }
-    
-    .electron:nth-child(7) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 2s, 0.7s;
-    }
-    
-    .electron:nth-child(8) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 4s, 1.2s;
-    }
-    
-    .electron:nth-child(9) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 6s, 1.7s;
-    }
-    
-    /* 外側の軌道（4個） */
-    .electron:nth-child(10) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0.3s;
-    }
-    
-    .electron:nth-child(11) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 2.5s, 0.8s;
-    }
-    
-    .electron:nth-child(12) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 5s, 1.3s;
-    }
-    
-    .electron:nth-child(13) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 7.5s, 1.8s;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    else:
+        # Text-to-Image: Show sparkle in col2
+        with col2:
+            sparkle_text_placeholder.markdown("""
+            <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+                <div class="sparkle-container">
+                    <div class="sparkle">✨</div>
+                    <div class="sparkle">✨</div>
+                    <div class="sparkle">✨</div>
+                </div>
+            </div>
+            
+            <style>
+            @keyframes sparkle {
+                0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+                50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+            }
+            .sparkle-container {
+                text-align: center;
+            }
+            .sparkle {
+                display: inline-block;
+                font-size: 25px;
+                animation: sparkle 1.5s ease-in-out infinite;
+                margin: 0 8px;
+            }
+            .sparkle:nth-child(2) {
+                animation-delay: 0.3s;
+            }
+            .sparkle:nth-child(3) {
+                animation-delay: 0.6s;
+            }
+            </style>
+            """, unsafe_allow_html=True)
     
     try:
         status_text.text("Sending request...")
@@ -742,23 +528,37 @@ if generate_btn:
                             })
                             
                             # Update After placeholder with generated image + View button overlay
-                            after_placeholder.empty()
-                            with after_placeholder.container():
-                                st.markdown(f"""
-                                <div style="position: relative;">
-                                    <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
-                                    <div style="position: absolute; top: 5px; right: 5px;">
-                                        <a href="{img_url}" target="_blank" 
-                                           style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
-                                           View
-                                        </a>
+                            if uploaded_file is not None:
+                                # Image-to-Image: Update After placeholder
+                                after_placeholder.empty()
+                                with after_placeholder.container():
+                                    st.markdown(f"""
+                                    <div style="position: relative;">
+                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                        <div style="position: absolute; top: 5px; right: 5px;">
+                                            <a href="{img_url}" target="_blank" 
+                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                               View
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                                """, unsafe_allow_html=True)
-                            
-                            # Balloons for Text-to-Image only
-                            if uploaded_file is None:
-                                st.balloons()
+                                    """, unsafe_allow_html=True)
+                            else:
+                                # Text-to-Image: Clear sparkle and display at top of col2
+                                sparkle_text_placeholder.empty()
+                                with col2:
+                                    st.balloons()
+                                    st.markdown(f"""
+                                    <div style="position: relative;">
+                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                        <div style="position: absolute; top: 5px; right: 5px;">
+                                            <a href="{img_url}" target="_blank" 
+                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                               View
+                                            </a>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             
                             # Caption with size and resolution (no download button)
                             with col2:
