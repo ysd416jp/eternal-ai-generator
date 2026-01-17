@@ -450,62 +450,62 @@ with col1:
 
 # Model options (outside col1 block)
 model_options = {
-        "Qwen": "Qwen-Image-Edit-2509",
-        "NB Pro": "gemini-3-pro-image-preview",
-        "NB": "gemini-2.5-flash-image",
-        "SD4.5": "seedream-4-5-251128",
-        "Flux": "flux-2-pro"
+    "Qwen": "Qwen-Image-Edit-2509",
+    "NB Pro": "gemini-3-pro-image-preview",
+    "NB": "gemini-2.5-flash-image",
+    "SD4.5": "seedream-4-5-251128",
+    "Flux": "flux-2-pro"
+}
+
+model_full_names = {
+    "Qwen": "Qwen Image Edit (最も柔軟・最安・18+)",
+    "NB Pro": "Nano Banana Pro (最高品質・高速)",
+    "NB": "Nano Banana (高品質)",
+    "SD4.5": "Seedream 4.5 (新モデル)",
+    "Flux": "Flux 2 Pro (プロ品質)"
+}
+
+with col1:
+    # Model selection with st.pills() - modern button style
+    selected_model_short = st.pills(
+        "Model",
+        options=list(model_options.keys()),
+        default="Qwen",
+        label_visibility="collapsed"
+    )
+    
+    selected_model_id = model_options[selected_model_short]
+    
+    # Aspect Ratio selection with st.pills() - modern button style
+    aspect_ratio_options = {
+        "Auto": "auto",
+        "21:9": "21:9",
+        "16:9": "16:9",
+        "4:3": "4:3",
+        "1:1": "1:1",
+        "9:16": "9:16"
     }
     
-    model_full_names = {
-        "Qwen": "Qwen Image Edit (最も柔軟・最安・18+)",
-        "NB Pro": "Nano Banana Pro (最高品質・高速)",
-        "NB": "Nano Banana (高品質)",
-        "SD4.5": "Seedream 4.5 (新モデル)",
-        "Flux": "Flux 2 Pro (プロ品質)"
-    }
+    selected_aspect_ratio = st.pills(
+        "Aspect Ratio",
+        options=list(aspect_ratio_options.keys()),
+        default="Auto",
+        label_visibility="collapsed"
+    )
     
-    with col1:
-        # Model selection with st.pills() - modern button style
-        selected_model_short = st.pills(
-            "Model",
-            options=list(model_options.keys()),
-            default="Qwen",
-            label_visibility="collapsed"
-        )
-        
-        selected_model_id = model_options[selected_model_short]
-        
-        # Aspect Ratio selection with st.pills() - modern button style
-        aspect_ratio_options = {
-            "Auto": "auto",
-            "21:9": "21:9",
-            "16:9": "16:9",
-            "4:3": "4:3",
-            "1:1": "1:1",
-            "9:16": "9:16"
-        }
-        
-        selected_aspect_ratio = st.pills(
-            "Aspect Ratio",
-            options=list(aspect_ratio_options.keys()),
-            default="Auto",
-            label_visibility="collapsed"
-        )
-        
-        selected_aspect_value = aspect_ratio_options[selected_aspect_ratio]
-        
-        # Denoising strength slider with larger handle (always show)
-        denoising_strength = st.slider(
-            "Denoising Strength",
-            min_value=0.1,
-            max_value=0.9,
-            value=0.6,
-            step=0.1,
-            help="Lower: subtle changes, Higher: dramatic changes"
-        )
-        
-        generate_btn = st.button("Generate", type="primary")
+    selected_aspect_value = aspect_ratio_options[selected_aspect_ratio]
+    
+    # Denoising strength slider with larger handle (always show)
+    denoising_strength = st.slider(
+        "Denoising Strength",
+        min_value=0.1,
+        max_value=0.9,
+        value=0.6,
+        step=0.1,
+        help="Lower: subtle changes, Higher: dramatic changes"
+    )
+    
+    generate_btn = st.button("Generate", type="primary")
 
 with col2:
     # Always show Before & After structure (unified layout)
