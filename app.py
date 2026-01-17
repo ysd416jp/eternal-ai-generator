@@ -425,14 +425,14 @@ with col1:
                 st.session_state.show_preset_editor = not st.session_state.get('show_preset_editor', False)
                 st.rerun()
     
-    # Preset Editor (show when Edit button is clicked)
-    if st.session_state.get('show_preset_editor', False):
+    # Preset Editor (always show, expand/collapse with Edit button)
+    if st.session_state.get('show_preset_editor', False) or st.session_state.get('custom_preset'):
         preset_content = st.text_area(
-            "Preset Editor",
+            "",
             value=st.session_state.get('custom_preset', ''),
-            height=20,
+            height=25,
             key="preset_editor",
-            placeholder="Edit preset style..."
+            placeholder="Preset style (click Edit button to show/hide)..."
         )
         st.session_state.custom_preset = preset_content
     
@@ -441,7 +441,7 @@ with col1:
     with col_jp:
         japanese_prompt = st.text_area(
             "",
-            height=15,
+            height=30,
             placeholder="例: 20代の日本人女性がオフィスで働いている様子。全身ショット。",
             key="japanese_prompt"
         )
@@ -459,7 +459,12 @@ with col1:
                     "DeepSeek-V3": "deepseek/deepseek-chat"
                 }
                 
-                st.session_state.translations = {}
+                # Set "翻訳中..." in text boxes
+                st.session_state.translations = {
+                    "Hermes-3-Llama-3.1-405B": "翻訳中...",
+                    "DeepSeek-V3": "翻訳中..."
+                }
+                st.rerun()  # Refresh to show "翻訳中..."
                 
                 # System prompt for better translation
                 system_prompt = """You are a professional Japanese-to-English translator specializing in AI image generation prompts.
@@ -471,40 +476,39 @@ TRANSLATION RULES:
 
 Translate accurately based on the actual content."""
                 
-                with st.spinner("翻訳中..."):
-                    for model_name, model_id in models.items():
-                        try:
-                            response = requests.post(
-                                "https://openrouter.ai/api/v1/chat/completions",
-                                headers={
-                                    "Authorization": f"Bearer {st.session_state.openrouter_api_key}",
-                                    "Content-Type": "application/json",
-                                    "HTTP-Referer": "https://eternal-ai-generator.streamlit.app",
-                                    "X-Title": "EternalAI Image Generator"
-                                },
-                                json={
-                                    "model": model_id,
-                                    "messages": [
-                                        {"role": "system", "content": system_prompt},
-                                        {"role": "user", "content": japanese_prompt}
-                                    ],
-                                    "temperature": 0.9
-                                },
-                                timeout=30
-                            )
-                            
-                            if response.status_code == 200:
-                                data = response.json()
-                                if "choices" in data and len(data["choices"]) > 0:
-                                    translation = data["choices"][0]["message"]["content"].strip()
-                                    st.session_state.translations[model_name] = translation
-                                else:
-                                    st.session_state.translations[model_name] = f"Error: No translation returned"
+                for model_name, model_id in models.items():
+                    try:
+                        response = requests.post(
+                            "https://openrouter.ai/api/v1/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {st.session_state.openrouter_api_key}",
+                                "Content-Type": "application/json",
+                                "HTTP-Referer": "https://eternal-ai-generator.streamlit.app",
+                                "X-Title": "EternalAI Image Generator"
+                            },
+                            json={
+                                "model": model_id,
+                                "messages": [
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": japanese_prompt}
+                                ],
+                                "temperature": 0.9
+                            },
+                            timeout=30
+                        )
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            if "choices" in data and len(data["choices"]) > 0:
+                                translation = data["choices"][0]["message"]["content"].strip()
+                                st.session_state.translations[model_name] = translation
                             else:
-                                error_msg = response.text[:200] if response.text else "Unknown error"
-                                st.session_state.translations[model_name] = f"Error {response.status_code}: {error_msg}"
-                        except Exception as e:
-                            st.session_state.translations[model_name] = f"Error: {str(e)}"
+                                st.session_state.translations[model_name] = f"Error: No translation returned"
+                        else:
+                            error_msg = response.text[:200] if response.text else "Unknown error"
+                            st.session_state.translations[model_name] = f"Error {response.status_code}: {error_msg}"
+                    except Exception as e:
+                        st.session_state.translations[model_name] = f"Error: {str(e)}"
                 
                 # Check if translation succeeded
                 if any(not v.startswith("Error") for v in st.session_state.translations.values()):
@@ -526,7 +530,7 @@ Translate accurately based on the actual content."""
         hermes_result = st.text_area(
             "",
             value=st.session_state.translations.get("Hermes-3-Llama-3.1-405B", ""),
-            height=15,
+            height=30,
             disabled=True,
             placeholder="Hermes-3-Llama-3.1-405B",
             key="hermes_result"
@@ -544,7 +548,7 @@ Translate accurately based on the actual content."""
         deepseek_result = st.text_area(
             "",
             value=st.session_state.translations.get("DeepSeek-V3", ""),
-            height=15,
+            height=30,
             disabled=True,
             placeholder="DeepSeek-V3",
             key="deepseek_result"
@@ -559,7 +563,7 @@ Translate accurately based on the actual content."""
     # Prompt (English) - 2行分
     user_prompt_input = st.text_area(
         "Prompt (English)", 
-        height=20,
+        height=40,
         value=st.session_state.get('user_prompt', ''),
         key="user_prompt_field"
     )
@@ -1062,15 +1066,18 @@ else:
         # Show credit balance
         try:
             balance_response = requests.get(
-                "https://openrouter.ai/api/v1/auth/key",
+                "https://openrouter.ai/api/v1/credits",
                 headers={"Authorization": f"Bearer {st.session_state.openrouter_api_key}"}
             )
             if balance_response.status_code == 200:
-                credit_data = balance_response.json()
-                credit_left = credit_data.get("data", {}).get("limit", 0)
-                st.info(f"💳 残クレジット: ${credit_left:.2f}")
-        except:
-            st.warning("Failed to fetch credit balance")
+                data = balance_response.json()
+                credits = data.get("data", {})
+                balance = (credits.get("total_credits", 0) - credits.get("total_usage", 0))
+                st.info(f"💳 残クレジット: ${balance:.4f}")
+            else:
+                st.warning(f"Failed to fetch credit balance: {balance_response.status_code}")
+        except Exception as e:
+            st.warning(f"Credit fetch error: {str(e)}")
     
     with col_reset:
         if st.button("🔄 Reset API Key"):
