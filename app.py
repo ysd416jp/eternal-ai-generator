@@ -107,15 +107,24 @@ st.markdown("""
         border-color: #8B5CF6 !important;
     }
     
-    /* Purple Generate button */
+    /* White Generate button with black text + smaller size */
     button[kind="primary"] {
-        background-color: #8B5CF6 !important;
-        border-color: #8B5CF6 !important;
+        background-color: #FFFFFF !important;
+        border-color: #FFFFFF !important;
+        color: #000000 !important;
+        padding: 0.25rem 1rem !important;
+        font-size: 14px !important;
+        font-weight: 600 !important;
     }
     
     button[kind="primary"]:hover {
-        background-color: #7C3AED !important;
-        border-color: #7C3AED !important;
+        background-color: #E0E0E0 !important;
+        border-color: #E0E0E0 !important;
+        color: #000000 !important;
+    }
+    
+    button[kind="primary"] p {
+        color: #000000 !important;
     }
     
     /* Dark mode for inputs */
@@ -201,27 +210,17 @@ with st.sidebar:
             # Unique ID for each image
             unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
             
-            # Escape prompt for JavaScript (properly)
-            escaped_prompt = img_data['prompt'].replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '')
-            
-            # Unique button ID
-            button_id = f"copy_btn_{unique_id}"
-            
-            # Image with overlay buttons (View and Copy Prompt only)
+            # Image with overlay button (View only)
             st.markdown(f"""
             <div style="position: relative; margin-bottom: 5px;">
                 <a href="{img_data['url']}" target="_blank">
                     <img src="{img_data['url']}" style="width: 100%; border-radius: 5px; cursor: pointer;" />
                 </a>
-                <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 3px;">
+                <div style="position: absolute; top: 5px; right: 5px;">
                     <a href="{img_data['url']}" target="_blank" 
                        style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">
                        View
                     </a>
-                    <button id="{button_id}" 
-                            onclick="navigator.clipboard.writeText('{escaped_prompt}').then(() => alert('Prompt copied!')).catch(err => {{ var textarea = document.createElement('textarea'); textarea.value = '{escaped_prompt}'; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); alert('Prompt copied!'); }});"
-                            style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; border: none; cursor: pointer; font-size: 9px;"
-                            title="Copy full prompt">📋</button>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -453,17 +452,19 @@ if generate_btn:
         }
         width, height = aspect_map.get(selected_aspect_value, (180, 180))
         
-        # Show dummy image in Before area (same as background color)
+        # Show dummy image in Before area (完全な暗黒)
         before_placeholder.markdown(f"""
         <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px; border: 1px solid #333;"></div>
+            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px;"></div>
         </div>
         """, unsafe_allow_html=True)
     
-    # Show stylish purple particle effect in After area (unified for both modes)
+    # Show stylish purple particle effect in After area (無限ループ + 滑らか)
     after_placeholder.markdown("""
-    <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden;">
+    <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden; background-color: #0E1117;">
         <div class="particle-container">
+            <div class="particle"></div>
+            <div class="particle"></div>
             <div class="particle"></div>
             <div class="particle"></div>
             <div class="particle"></div>
@@ -474,79 +475,95 @@ if generate_btn:
     </div>
     
     <style>
-    @keyframes float {
+    @keyframes floatUp {
         0% {
-            transform: translateY(100px) translateX(0) scale(0);
+            transform: translateY(200px) translateX(0px);
             opacity: 0;
         }
-        50% {
+        10% {
+            opacity: 1;
+        }
+        90% {
             opacity: 1;
         }
         100% {
-            transform: translateY(-100px) translateX(50px) scale(1);
+            transform: translateY(-50px) translateX(30px);
             opacity: 0;
         }
     }
     
     @keyframes wave {
         0%, 100% {
-            transform: translateX(0) translateY(0);
+            transform: translateX(0px);
         }
         25% {
-            transform: translateX(20px) translateY(-20px);
+            transform: translateX(15px);
         }
         50% {
-            transform: translateX(0) translateY(-40px);
+            transform: translateX(0px);
         }
         75% {
-            transform: translateX(-20px) translateY(-20px);
+            transform: translateX(-15px);
         }
     }
     
     .particle-container {
-        position: relative;
+        position: absolute;
         width: 100%;
         height: 100%;
+        top: 0;
+        left: 0;
     }
     
     .particle {
         position: absolute;
-        width: 8px;
-        height: 8px;
-        background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+        bottom: 0;
+        width: 10px;
+        height: 10px;
+        background: radial-gradient(circle, #A78BFA, #8B5CF6);
         border-radius: 50%;
-        box-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6;
-        animation: float 3s ease-in-out infinite, wave 2s ease-in-out infinite;
+        box-shadow: 0 0 15px #8B5CF6, 0 0 30px #8B5CF6, 0 0 45px #8B5CF650;
+        animation: floatUp 4s ease-in-out infinite, wave 3s ease-in-out infinite;
     }
     
     .particle:nth-child(1) {
-        left: 20%;
-        animation-delay: 0s;
+        left: 15%;
+        animation-delay: 0s, 0s;
     }
     
     .particle:nth-child(2) {
-        left: 40%;
-        animation-delay: 0.5s;
+        left: 30%;
+        animation-delay: 0.5s, 0.3s;
     }
     
     .particle:nth-child(3) {
-        left: 60%;
-        animation-delay: 1s;
+        left: 45%;
+        animation-delay: 1s, 0.6s;
     }
     
     .particle:nth-child(4) {
-        left: 30%;
-        animation-delay: 1.5s;
+        left: 60%;
+        animation-delay: 1.5s, 0.9s;
     }
     
     .particle:nth-child(5) {
-        left: 50%;
-        animation-delay: 2s;
+        left: 75%;
+        animation-delay: 2s, 1.2s;
     }
     
     .particle:nth-child(6) {
-        left: 70%;
-        animation-delay: 2.5s;
+        left: 25%;
+        animation-delay: 2.5s, 1.5s;
+    }
+    
+    .particle:nth-child(7) {
+        left: 50%;
+        animation-delay: 3s, 1.8s;
+    }
+    
+    .particle:nth-child(8) {
+        left: 85%;
+        animation-delay: 3.5s, 2.1s;
     }
     </style>
     """, unsafe_allow_html=True)
