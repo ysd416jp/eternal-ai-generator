@@ -69,22 +69,34 @@ st.markdown("""
         height: 20px !important;
     }
     
-    /* Purple radio buttons - FORCE OVERRIDE */
+    /* Purple radio buttons - CLEAR VISIBILITY */
     input[type="radio"] {
         appearance: none !important;
         -webkit-appearance: none !important;
-        width: 16px !important;
-        height: 16px !important;
+        width: 18px !important;
+        height: 18px !important;
         border: 2px solid #8B5CF6 !important;
         border-radius: 50% !important;
-        background-color: transparent !important;
+        background-color: #0E1117 !important;
         cursor: pointer !important;
+        position: relative !important;
     }
     
     input[type="radio"]:checked {
-        background-color: #8B5CF6 !important;
+        background-color: #0E1117 !important;
         border-color: #8B5CF6 !important;
-        box-shadow: inset 0 0 0 3px #0E1117 !important;
+    }
+    
+    input[type="radio"]:checked::after {
+        content: '' !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        background-color: #FFFFFF !important;
     }
     
     /* Radio button labels */
@@ -99,12 +111,24 @@ st.markdown("""
     
     div[data-baseweb="radio"] > div > div {
         border-color: #8B5CF6 !important;
-        background-color: transparent !important;
+        background-color: #0E1117 !important;
     }
     
     div[data-baseweb="radio"] > div > div[data-checked="true"] {
-        background-color: #8B5CF6 !important;
+        background-color: #0E1117 !important;
         border-color: #8B5CF6 !important;
+    }
+    
+    div[data-baseweb="radio"] > div > div[data-checked="true"]::after {
+        content: '' !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        background-color: #FFFFFF !important;
     }
     
     /* White Generate button with black text + smaller size */
@@ -459,65 +483,94 @@ if generate_btn:
         </div>
         """, unsafe_allow_html=True)
     
-    # Show stylish purple particle effect in center (中央でキラキラ + 無限ループ)
+    # Show stylish purple particle effect - 360度ランダムに飛び立つ（原子核の電子）
     after_placeholder.markdown("""
     <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden; background-color: #0E1117;">
-        <div class="sparkle-center">
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
-            <div class="sparkle-particle"></div>
+        <div class="atom-container">
+            <div class="nucleus"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
+            <div class="electron"></div>
         </div>
     </div>
     
     <style>
-    @keyframes sparkleRotate {
+    @keyframes orbit1 {
         0% {
-            transform: rotate(0deg) translateX(0px) scale(0);
-            opacity: 0;
-        }
-        10% {
-            opacity: 1;
-            transform: rotate(36deg) translateX(30px) scale(1);
-        }
-        50% {
-            opacity: 1;
-            transform: rotate(180deg) translateX(50px) scale(1.2);
-        }
-        90% {
-            opacity: 1;
-            transform: rotate(324deg) translateX(30px) scale(1);
+            transform: rotate(0deg) translateX(40px) rotate(0deg);
         }
         100% {
-            transform: rotate(360deg) translateX(0px) scale(0);
-            opacity: 0;
+            transform: rotate(360deg) translateX(40px) rotate(-360deg);
         }
     }
     
-    @keyframes pulse {
+    @keyframes orbit2 {
+        0% {
+            transform: rotate(0deg) translateX(60px) rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg) translateX(60px) rotate(-360deg);
+        }
+    }
+    
+    @keyframes orbit3 {
+        0% {
+            transform: rotate(0deg) translateX(80px) rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg) translateX(80px) rotate(-360deg);
+        }
+    }
+    
+    @keyframes glow {
         0%, 100% {
-            box-shadow: 0 0 20px #8B5CF6, 0 0 40px #8B5CF6, 0 0 60px #8B5CF650;
+            box-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6, 0 0 30px #8B5CF650;
         }
         50% {
-            box-shadow: 0 0 30px #A78BFA, 0 0 60px #A78BFA, 0 0 90px #A78BFA50;
+            box-shadow: 0 0 15px #A78BFA, 0 0 30px #A78BFA, 0 0 45px #A78BFA50;
         }
     }
     
-    .sparkle-center {
-        position: relative;
-        width: 120px;
-        height: 120px;
+    @keyframes nucleusPulse {
+        0%, 100% {
+            transform: scale(1);
+            box-shadow: 0 0 20px #8B5CF6, 0 0 40px #8B5CF6;
+        }
+        50% {
+            transform: scale(1.2);
+            box-shadow: 0 0 30px #A78BFA, 0 0 60px #A78BFA;
+        }
     }
     
-    .sparkle-particle {
+    .atom-container {
+        position: relative;
+        width: 200px;
+        height: 200px;
+    }
+    
+    .nucleus {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 12px;
+        height: 12px;
+        margin: -6px 0 0 -6px;
+        background: radial-gradient(circle, #FFFFFF, #A78BFA);
+        border-radius: 50%;
+        animation: nucleusPulse 3s ease-in-out infinite;
+        z-index: 2;
+    }
+    
+    .electron {
         position: absolute;
         top: 50%;
         left: 50%;
@@ -526,16 +579,73 @@ if generate_btn:
         margin: -4px 0 0 -4px;
         background: radial-gradient(circle, #FFFFFF, #A78BFA, #8B5CF6);
         border-radius: 50%;
-        animation: sparkleRotate 3s ease-in-out infinite, pulse 1.5s ease-in-out infinite;
+        animation: glow 2s ease-in-out infinite;
     }
     
-    .sparkle-particle:nth-child(1) {
+    /* 内側の軌道（4個） */
+    .electron:nth-child(2) {
+        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
         animation-delay: 0s, 0s;
     }
     
-    .sparkle-particle:nth-child(2) {
-        animation-delay: 0.25s, 0.125s;
+    .electron:nth-child(3) {
+        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 1.5s, 0.5s;
     }
+    
+    .electron:nth-child(4) {
+        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 3s, 1s;
+    }
+    
+    .electron:nth-child(5) {
+        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 4.5s, 1.5s;
+    }
+    
+    /* 中間の軌道（4個） */
+    .electron:nth-child(6) {
+        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 0s, 0.2s;
+    }
+    
+    .electron:nth-child(7) {
+        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 2s, 0.7s;
+    }
+    
+    .electron:nth-child(8) {
+        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 4s, 1.2s;
+    }
+    
+    .electron:nth-child(9) {
+        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 6s, 1.7s;
+    }
+    
+    /* 外側の軌道（4個） */
+    .electron:nth-child(10) {
+        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 0s, 0.3s;
+    }
+    
+    .electron:nth-child(11) {
+        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 2.5s, 0.8s;
+    }
+    
+    .electron:nth-child(12) {
+        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 5s, 1.3s;
+    }
+    
+    .electron:nth-child(13) {
+        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
+        animation-delay: 7.5s, 1.8s;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     .sparkle-particle:nth-child(3) {
         animation-delay: 0.5s, 0.25s;
