@@ -56,9 +56,37 @@ st.markdown("""
     
     /* Reduce top padding */
     .block-container {
-        padding-top: 1rem;
-        padding-bottom: 0rem;
+        padding-top: 0.5rem !important;
+        padding-bottom: 0rem !important;
         background-color: #0E1117 !important;
+    }
+    
+    /* Minimize vertical spacing */
+    .stTextArea, .stTextInput {
+        margin-bottom: 0.2rem !important;
+    }
+    
+    /* Compact buttons */
+    .stButton > button {
+        padding: 0.2rem 0.5rem !important;
+        font-size: 12px !important;
+        height: auto !important;
+        min-height: 28px !important;
+    }
+    
+    /* Compact file uploader */
+    .stFileUploader {
+        margin-bottom: 0.2rem !important;
+    }
+    
+    /* Compact pills */
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0.2rem !important;
+    }
+    
+    /* Remove extra spacing */
+    .element-container {
+        margin-bottom: 0rem !important;
     }
     
     /* Sidebar dark */
@@ -321,54 +349,71 @@ STYLE_PRESETS = {
 # Input Area
 col1, col2 = st.columns([1, 1])
 with col1:
-    # Reference Image (smaller size)
-    uploaded_file = st.file_uploader(
-        "", 
-        type=["jpg", "jpeg", "png", "webp"],
-        label_visibility="collapsed",
-        help="Reference image (optional, max 5MB)"
-    )
+    # Reference Image + Preset Buttons (横並び)
+    ref_col, preset_col = st.columns([1, 2])
     
-    # Preset Buttons (4 buttons)
-    preset_cols = st.columns(4)
-    with preset_cols[0]:
-        if st.button("Portrait", key="preset_portrait", use_container_width=True):
-            st.session_state.selected_preset = "Realistic Portrait"
-    with preset_cols[1]:
-        if st.button("Cinematic", key="preset_cinematic", use_container_width=True):
-            st.session_state.selected_preset = "Cinematic"
-    with preset_cols[2]:
-        if st.button("Street", key="preset_street", use_container_width=True):
-            st.session_state.selected_preset = "Street Photography"
-    with preset_cols[3]:
-        if st.button("Landscape", key="preset_landscape", use_container_width=True):
-            st.session_state.selected_preset = "Landscape"
+    with ref_col:
+        uploaded_file = st.file_uploader(
+            "", 
+            type=["jpg", "jpeg", "png", "webp"],
+            label_visibility="collapsed",
+            help="Reference"
+        )
     
-    # Preset Editor (always editable)
+    with preset_col:
+        # Preset Buttons (6 buttons in 2 rows)
+        preset_row1 = st.columns(3)
+        with preset_row1[0]:
+            if st.button("Portrait", key="preset_portrait", use_container_width=True):
+                st.session_state.selected_preset = "Realistic Portrait"
+                st.rerun()
+        with preset_row1[1]:
+            if st.button("Cinema", key="preset_cinematic", use_container_width=True):
+                st.session_state.selected_preset = "Cinematic"
+                st.rerun()
+        with preset_row1[2]:
+            if st.button("Street", key="preset_street", use_container_width=True):
+                st.session_state.selected_preset = "Street Photography"
+                st.rerun()
+        
+        preset_row2 = st.columns(3)
+        with preset_row2[0]:
+            if st.button("Landscape", key="preset_landscape", use_container_width=True):
+                st.session_state.selected_preset = "Landscape"
+                st.rerun()
+        with preset_row2[1]:
+            if st.button("None", key="preset_none", use_container_width=True):
+                st.session_state.selected_preset = ""
+                st.session_state.custom_preset = ""
+                st.rerun()
+        with preset_row2[2]:
+            st.write("")  # Empty space
+    
+    # Preset Editor (show only when preset is selected)
     if st.session_state.get('selected_preset'):
         preset_content = st.text_area(
             "",
-            value=STYLE_PRESETS[st.session_state.selected_preset],
-            height=60,
+            value=STYLE_PRESETS.get(st.session_state.selected_preset, ""),
+            height=40,
             key="preset_editor",
-            placeholder="Preset style description (editable)"
+            placeholder="Edit preset..."
         )
         st.session_state.custom_preset = preset_content
     else:
         st.session_state.custom_preset = ""
     
-    # Translation Area (3 rows)
-    # Japanese input + [T9E] button
-    col_jp, col_t9e = st.columns([10, 1])
+    # Translation Area (3 rows) - 最小サイズ
+    col_jp, col_t9e = st.columns([9, 1])
     with col_jp:
         japanese_prompt = st.text_area(
             "",
-            height=50,
+            height=40,
             placeholder="例: 20代の日本人女性がオフィスで働いている様子。全身ショット。",
             key="japanese_prompt"
         )
     with col_t9e:
-        if st.button("T9E", key="translate_btn", use_container_width=True):
+        st.write("")  # Spacing
+        if st.button("T9E", key="translate_btn", use_container_width=True, type="secondary"):
             if japanese_prompt and st.session_state.openrouter_api_key:
                 models = {
                     "Hermes-3-Llama-3.1-405B": "nousresearch/hermes-3-llama-3.1-405b",
@@ -406,41 +451,45 @@ with col1:
                 st.rerun()
     
     # Hermes translation result + [Go]
-    col_hermes, col_go1 = st.columns([10, 1])
+    col_hermes, col_go1 = st.columns([9, 1])
     with col_hermes:
         hermes_result = st.text_area(
             "",
             value=st.session_state.translations.get("Hermes-3-Llama-3.1-405B", ""),
-            height=50,
+            height=40,
             disabled=True,
             placeholder="Hermes-3-Llama-3.1-405B",
             key="hermes_result"
         )
     with col_go1:
-        if st.button("Go", key="go_hermes", use_container_width=True):
-            st.session_state.user_prompt = hermes_result
-            st.rerun()
+        st.write("")  # Spacing
+        if st.button("Go", key="go_hermes", use_container_width=True, type="secondary"):
+            if hermes_result:
+                st.session_state.user_prompt = hermes_result
+                st.rerun()
     
     # DeepSeek translation result + [Go]
-    col_deepseek, col_go2 = st.columns([10, 1])
+    col_deepseek, col_go2 = st.columns([9, 1])
     with col_deepseek:
         deepseek_result = st.text_area(
             "",
             value=st.session_state.translations.get("DeepSeek-V3", ""),
-            height=50,
+            height=40,
             disabled=True,
             placeholder="DeepSeek-V3",
             key="deepseek_result"
         )
     with col_go2:
-        if st.button("Go", key="go_deepseek", use_container_width=True):
-            st.session_state.user_prompt = deepseek_result
-            st.rerun()
+        st.write("")  # Spacing
+        if st.button("Go", key="go_deepseek", use_container_width=True, type="secondary"):
+            if deepseek_result:
+                st.session_state.user_prompt = deepseek_result
+                st.rerun()
     
-    # Prompt (English)
+    # Prompt (English) - 最小サイズ
     user_prompt_input = st.text_area(
         "Prompt (English)", 
-        height=80,
+        height=50,
         value=st.session_state.get('user_prompt', ''),
         key="user_prompt_field"
     )
@@ -513,6 +562,10 @@ with col2:
     with compare_cols[0]:
         st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
         before_placeholder = st.empty()
+        
+        # Show uploaded image immediately in Before area
+        if uploaded_file is not None:
+            before_placeholder.image(uploaded_file, use_column_width=True)
         
     with compare_cols[1]:
         st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
