@@ -12,15 +12,6 @@ import datetime
 if "generated_images" not in st.session_state:
     st.session_state.generated_images = []
 
-if "translations" not in st.session_state:
-    st.session_state.translations = {}
-
-if "selected_translation" not in st.session_state:
-    st.session_state.selected_translation = ""
-
-if "openrouter_api_key" not in st.session_state:
-    st.session_state.openrouter_api_key = ""
-
 # API key configuration
 KEY_FILE_PATH = "/Users/yoichiroyoshida/my_ai_app/eternal_api_key.txt"
 
@@ -299,152 +290,49 @@ with st.sidebar:
     else:
         st.info("No images yet")
 
-# Main Tabs
-tab1, tab2 = st.tabs(["🎨 Generate", "🌐 Translate"])
+# Style Presets (English only, no icons)
+STYLE_PRESETS = {
+    "None (Custom)": "",
+    "Realistic Portrait": "photorealistic, professional portrait photography, natural lighting, shot on Canon EOS R5, 85mm f/1.2, natural skin texture, realistic features, shallow depth of field, soft studio lighting, lifelike",
+    "Cinematic": "cinematic photography, film grain, anamorphic lens, natural color grading, shot on ARRI Alexa, dramatic lighting, movie still, cinematic composition",
+    "Street Photography": "candid street photography, natural lighting, realistic atmosphere, documentary style, shot on Leica M10, 35mm lens, photojournalism, authentic moment",
+    "Commercial": "commercial photography, professional studio lighting, high resolution, sharp focus, advertising quality, clean background, product photography style",
+    "Landscape": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range",
+    "Art Photography": "fine art photography, creative lighting, artistic composition, professional color grading, gallery quality, expressive mood"
+}
 
-with tab2:
-    st.markdown("### 翻訳ツール")
-    st.markdown("日本語プロンプトを3つのAIモデルで英語に翻訳します")
+# Input Area
+col1, col2 = st.columns([1, 1])
+with col1:
+    # 6) Browse Files at the top (決定的な態度)
+    uploaded_file = st.file_uploader(
+        "Reference Image (Optional)", 
+        type=["jpg", "jpeg", "png", "webp"],
+        help="Upload a reference image for Image-to-Image generation (Max 5MB)"
+    )
     
-    if not st.session_state.openrouter_api_key:
-        openrouter_key_input = st.text_input(
-            "OpenRouter API Key",
-            type="password",
-            help="https://openrouter.ai でAPIキーを取得してください"
+    # Style preset selector
+    selected_style = st.selectbox(
+        "Style Preset",
+        options=list(STYLE_PRESETS.keys())
+    )
+    
+    # Show selected style description (editable)
+    if selected_style != "None (Custom)":
+        style_prompt = st.text_area(
+            "Style Details (Editable)",
+            value=STYLE_PRESETS[selected_style],
+            height=60
         )
-        if openrouter_key_input:
-            st.session_state.openrouter_api_key = openrouter_key_input
-            st.rerun()
     else:
-        # Show credit balance
-        try:
-            balance_response = requests.get(
-                "https://openrouter.ai/api/v1/auth/key",
-                headers={"Authorization": f"Bearer {st.session_state.openrouter_api_key}"}
-            )
-            if balance_response.status_code == 200:
-                credit_data = balance_response.json()
-                credit_left = credit_data.get("data", {}).get("limit", 0)
-                st.info(f"💳 残クレジット: ${credit_left:.2f}")
-        except:
-            pass
-        
-        japanese_prompt = st.text_area(
-            "日本語プロンプト",
-            height=120,
-            placeholder="例: 20代の日本人女性がオフィスで働いている様子。全身ショット。"
-        )
-        
-        col_translate, col_clear = st.columns([3, 1])
-        with col_translate:
-            translate_btn = st.button("🔄 翻訳", type="primary", use_container_width=True)
-        with col_clear:
-            if st.button("🗑️ クリア"):
-                st.session_state.translations = {}
-                st.session_state.selected_translation = ""
-                st.rerun()
-        
-        if translate_btn and japanese_prompt:
-            models = {
-                "MythoMax-L2-13B": "mythomax-l2-13b",
-                "DeepSeek-V3": "deepseek/deepseek-chat",
-                "Hermes-3-Llama-3.1-405B": "nousresearch/hermes-3-llama-3.1-405b"
-            }
-            
-            st.session_state.translations = {}
-            
-            with st.spinner("翻訳中..."):
-                for model_name, model_id in models.items():
-                    try:
-                        response = requests.post(
-                            "https://openrouter.ai/api/v1/chat/completions",
-                            headers={
-                                "Authorization": f"Bearer {st.session_state.openrouter_api_key}",
-                                "Content-Type": "application/json"
-                            },
-                            json={
-                                "model": model_id,
-                                "messages": [{
-                                    "role": "user",
-                                    "content": f"Translate the following Japanese text to English for image generation prompt. Keep it concise and descriptive:\n\n{japanese_prompt}"
-                                }]
-                            },
-                            timeout=30
-                        )
-                        
-                        if response.status_code == 200:
-                            translation = response.json()["choices"][0]["message"]["content"]
-                            st.session_state.translations[model_name] = translation
-                        else:
-                            st.session_state.translations[model_name] = f"Error: {response.status_code}"
-                    except Exception as e:
-                        st.session_state.translations[model_name] = f"Error: {str(e)}"
-        
-        if st.session_state.translations:
-            st.markdown("---")
-            st.markdown("### 📊 翻訳結果")
-            
-            for model_name, translation in st.session_state.translations.items():
-                with st.expander(f"**{model_name}**", expanded=True):
-                    st.text_area(
-                        "",
-                        value=translation,
-                        height=100,
-                        key=f"trans_{model_name}",
-                        disabled=True
-                    )
-                    if st.button(f"✅ この翻訳を使う", key=f"use_{model_name}"):
-                        st.session_state.selected_translation = translation
-                        st.success("✅ 翻訳を選択しました！「Generate」タブに移動してください")
-
-with tab1:
-    # Style Presets (English only, no icons)
-    STYLE_PRESETS = {
-        "None (Custom)": "",
-        "Realistic Portrait": "photorealistic, professional portrait photography, natural lighting, shot on Canon EOS R5, 85mm f/1.2, natural skin texture, realistic features, shallow depth of field, soft studio lighting, lifelike",
-        "Cinematic": "cinematic photography, film grain, anamorphic lens, natural color grading, shot on ARRI Alexa, dramatic lighting, movie still, cinematic composition",
-        "Street Photography": "candid street photography, natural lighting, realistic atmosphere, documentary style, shot on Leica M10, 35mm lens, photojournalism, authentic moment",
-        "Commercial": "commercial photography, professional studio lighting, high resolution, sharp focus, advertising quality, clean background, product photography style",
-        "Landscape": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range",
-        "Art Photography": "fine art photography, creative lighting, artistic composition, professional color grading, gallery quality, expressive mood"
-    }
-
-    # Input Area
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        # 6) Browse Files at the top (決定的な態度)
-        uploaded_file = st.file_uploader(
-            "Reference Image (Optional)", 
-            type=["jpg", "jpeg", "png", "webp"],
-            help="Upload a reference image for Image-to-Image generation (Max 5MB)"
-        )
-        
-        # Style preset selector
-        selected_style = st.selectbox(
-            "Style Preset",
-            options=list(STYLE_PRESETS.keys())
-        )
-        
-        # Show selected style description (editable)
-        if selected_style != "None (Custom)":
-            style_prompt = st.text_area(
-                "Style Details (Editable)",
-                value=STYLE_PRESETS[selected_style],
-                height=60
-            )
-        else:
-            style_prompt = ""
-        
-        # Use translation if available, otherwise use URL prompt or default
-        default_prompt = st.session_state.selected_translation if st.session_state.selected_translation else (url_prompt if url_prompt else "A beautiful Japanese woman in her 20s working in an office. Full body shot.")
-        
-        prompt_text = st.text_area(
-            "Prompt (English)", 
-            height=80,
-            value=default_prompt
-        )
+        style_prompt = ""
     
-    # Model options (outside col1 block)
+    prompt_text = st.text_area(
+        "Prompt (English)", 
+        height=80,
+        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 20s working in an office. Full body shot."
+    )
+    
     model_options = {
         "Qwen": "Qwen-Image-Edit-2509",
         "NB Pro": "gemini-3-pro-image-preview",
@@ -461,47 +349,46 @@ with tab1:
         "Flux": "Flux 2 Pro (プロ品質)"
     }
     
-    with col1:
-        # Model selection with st.pills() - modern button style
-        selected_model_short = st.pills(
-            "Model",
-            options=list(model_options.keys()),
-            default="Qwen",
-            label_visibility="collapsed"
-        )
-        
-        selected_model_id = model_options[selected_model_short]
-        
-        # Aspect Ratio selection with st.pills() - modern button style
-        aspect_ratio_options = {
-            "Auto": "auto",
-            "21:9": "21:9",
-            "16:9": "16:9",
-            "4:3": "4:3",
-            "1:1": "1:1",
-            "9:16": "9:16"
-        }
-        
-        selected_aspect_ratio = st.pills(
-            "Aspect Ratio",
-            options=list(aspect_ratio_options.keys()),
-            default="Auto",
-            label_visibility="collapsed"
-        )
-        
-        selected_aspect_value = aspect_ratio_options[selected_aspect_ratio]
-        
-        # Denoising strength slider with larger handle (always show)
-        denoising_strength = st.slider(
-            "Denoising Strength",
-            min_value=0.1,
-            max_value=0.9,
-            value=0.6,
-            step=0.1,
-            help="Lower: subtle changes, Higher: dramatic changes"
-        )
-        
-        generate_btn = st.button("Generate", type="primary")
+    # Model selection with st.pills() - modern button style
+    selected_model_short = st.pills(
+        "Model",
+        options=list(model_options.keys()),
+        default="Qwen",
+        label_visibility="collapsed"
+    )
+    
+    selected_model_id = model_options[selected_model_short]
+    
+    # Aspect Ratio selection with st.pills() - modern button style
+    aspect_ratio_options = {
+        "Auto": "auto",
+        "21:9": "21:9",
+        "16:9": "16:9",
+        "4:3": "4:3",
+        "1:1": "1:1",
+        "9:16": "9:16"
+    }
+    
+    selected_aspect_ratio = st.pills(
+        "Aspect Ratio",
+        options=list(aspect_ratio_options.keys()),
+        default="Auto",
+        label_visibility="collapsed"
+    )
+    
+    selected_aspect_value = aspect_ratio_options[selected_aspect_ratio]
+    
+    # Denoising strength slider with larger handle (always show)
+    denoising_strength = st.slider(
+        "Denoising Strength",
+        min_value=0.1,
+        max_value=0.9,
+        value=0.6,
+        step=0.1,
+        help="Lower: subtle changes, Higher: dramatic changes"
+    )
+    
+    generate_btn = st.button("Generate", type="primary")
 
 with col2:
     # Always show Before & After structure (unified layout)
@@ -623,167 +510,104 @@ if generate_btn:
         'Content-Type': 'application/json'
     }
 
-    # Show atomic nucleus + electrons particle effect during generation
-    after_placeholder.markdown("""
-    <div style="width: 100%; display: flex; justify-content: center; align-items: center; height: 250px;">
-        <div class="atom-container">
-            <div class="nucleus"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
+    # パーティクルの設定
+    particle_count = 30
+    particles_html = ""
+    for i in range(particle_count):
+        # 各パーティクルにランダムな動きのズレ(delay)を与える
+        delay = i * -0.2
+        particles_html += f'<div class="particle" style="--i:{i}; --delay:{delay}s;"></div>'
+
+    # Show stylish particle sphere effect during generation
+    after_placeholder.markdown(f"""
+    <div class="loader-container">
+        <div class="sphere-wrapper">
+            {particles_html}
         </div>
+        <p class="loading-text">Generating...</p>
     </div>
     
     <style>
-    @keyframes orbit1 {
-        0% {
-            transform: rotate(0deg) translateX(40px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(40px) rotate(-360deg);
-        }
-    }
-    
-    @keyframes orbit2 {
-        0% {
-            transform: rotate(0deg) translateX(60px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(60px) rotate(-360deg);
-        }
-    }
-    
-    @keyframes orbit3 {
-        0% {
-            transform: rotate(0deg) translateX(80px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(80px) rotate(-360deg);
-        }
-    }
-    
-    @keyframes glow {
-        0%, 100% {
-            box-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6, 0 0 30px #8B5CF650;
-        }
-        50% {
-            box-shadow: 0 0 15px #A78BFA, 0 0 30px #A78BFA, 0 0 45px #A78BFA50;
-        }
-    }
-    
-    @keyframes nucleusPulse {
-        0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 0 20px #8B5CF6, 0 0 40px #8B5CF6;
-        }
-        50% {
-            transform: scale(1.2);
-            box-shadow: 0 0 30px #A78BFA, 0 0 60px #A78BFA;
-        }
-    }
-    
-    .atom-container {
+    /* コンテナ全体 */
+    .loader-container {{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 300px;
+        perspective: 1000px;
+        background: transparent;
+    }}
+
+    /* 球体の中心 */
+    .sphere-wrapper {{
         position: relative;
-        width: 200px;
-        height: 200px;
-    }
-    
-    .nucleus {
+        width: 100px;
+        height: 100px;
+        transform-style: preserve-3d;
+        animation: rotateSphere 10s linear infinite;
+    }}
+
+    /* 個々のパーティクル */
+    .particle {{
         position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 12px;
-        height: 12px;
-        background: radial-gradient(circle, #A78BFA, #8B5CF6);
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
         border-radius: 50%;
-        transform: translate(-50%, -50%);
-        animation: nucleusPulse 3s ease-in-out infinite;
-        z-index: 10;
-    }
-    
-    .electron {
+        /* ワニワニウニョニョの動き */
+        transform: rotateY(calc(var(--i) * (360deg / {particle_count}))) translateZ(60px);
+        animation: unyoUnyo 3s ease-in-out infinite;
+        animation-delay: var(--delay);
+    }}
+
+    /* パーティクルの実体（光る点） */
+    .particle::before {{
+        content: '';
         position: absolute;
-        top: 50%;
+        top: 0;
         left: 50%;
-        width: 8px;
-        height: 8px;
-        background: radial-gradient(circle, #FFFFFF, #A78BFA);
+        width: 6px;
+        height: 6px;
+        background: #00ffff;
         border-radius: 50%;
-        transform: translate(-50%, -50%);
-        animation: glow 2s ease-in-out infinite;
-    }
+        transform: translateX(-50%);
+        box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    }}
+
+    /* 球体全体の回転 */
+    @keyframes rotateSphere {{
+        0% {{ transform: rotateX(0deg) rotateY(0deg); }}
+        100% {{ transform: rotateX(360deg) rotateY(360deg); }}
+    }}
+
+    /* 有機的な伸縮アニメーション */
+    @keyframes unyoUnyo {{
+        0%, 100% {{
+            transform: rotateY(calc(var(--i) * (360deg / {particle_count}))) translateZ(60px) scale(1);
+            filter: hue-rotate(0deg);
+        }}
+        50% {{
+            transform: rotateY(calc(var(--i) * (360deg / {particle_count}))) translateZ(90px) scale(1.5);
+            filter: hue-rotate(180deg);
+        }}
+    }}
     
-    /* 内側の軌道（4個） */
-    .electron:nth-child(2) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0s;
-    }
+    .loading-text {{
+        margin-top: 50px;
+        font-family: monospace;
+        color: #00ffff;
+        letter-spacing: 2px;
+        font-size: 12px;
+        animation: blink 1.5s infinite;
+        text-shadow: 0 0 5px #00ffff;
+    }}
     
-    .electron:nth-child(3) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 1.5s, 0.5s;
-    }
-    
-    .electron:nth-child(4) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 3s, 1s;
-    }
-    
-    .electron:nth-child(5) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 4.5s, 1.5s;
-    }
-    
-    /* 中間の軌道（4個） */
-    .electron:nth-child(6) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0.2s;
-    }
-    
-    .electron:nth-child(7) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 2s, 0.7s;
-    }
-    
-    .electron:nth-child(8) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 4s, 1.2s;
-    }
-    
-    .electron:nth-child(9) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 6s, 1.7s;
-    }
-    
-    /* 外側の軌道（4個） */
-    .electron:nth-child(10) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0.3s;
-    }
-    
-    .electron:nth-child(11) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 2.5s, 0.8s;
-    }
-    
-    .electron:nth-child(12) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 5s, 1.3s;
-    }
-    
-    .electron:nth-child(13) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 7.5s, 1.8s;
-    }
+    @keyframes blink {{
+        0%, 100% {{ opacity: 1; }}
+        50% {{ opacity: 0.3; }}
+    }}
     </style>
     """, unsafe_allow_html=True)
     
