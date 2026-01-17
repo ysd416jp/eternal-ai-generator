@@ -102,15 +102,16 @@ st.markdown("""
         color: #E0E0E0 !important;
     }
     
-    /* Labels with dark text for white backgrounds */
-    label {
+    /* Labels with DARK text for white backgrounds (force override) */
+    label, label > div, label > p, label > span {
         background-color: transparent !important;
-        color: #333 !important;
+        color: #111 !important;
+        font-weight: 600 !important;
     }
     
-    /* Fullscreen button opens in new tab */
-    button[title="View fullscreen"] > svg {
-        pointer-events: none;
+    /* Hide fullscreen button */
+    button[title="View fullscreen"] {
+        display: none !important;
     }
     
     /* Dark mode for all text (except labels) */
@@ -121,11 +122,6 @@ st.markdown("""
     /* Headers */
     h1, h2, h3, h4, h5, h6 {
         color: #FAFAFA !important;
-    }
-    
-    /* Labels without background */
-    label {
-        background-color: transparent !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -159,11 +155,10 @@ with st.sidebar:
             # Escape prompt for JavaScript (properly)
             escaped_prompt = img_data['prompt'].replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '')
             
-            # Unique button IDs
+            # Unique button ID
             button_id = f"copy_btn_{unique_id}"
-            dl_id = f"dl_btn_{unique_id}"
             
-            # Image with overlay buttons (View, DL, Copy Prompt)
+            # Image with overlay buttons (View and Copy Prompt only)
             st.markdown(f"""
             <div style="position: relative; margin-bottom: 5px;">
                 <a href="{img_data['url']}" target="_blank">
@@ -173,11 +168,6 @@ with st.sidebar:
                     <a href="{img_data['url']}" target="_blank" 
                        style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">
                        View
-                    </a>
-                    <a id="{dl_id}" href="javascript:void(0);" 
-                       onclick="var link = document.createElement('a'); link.href = '{img_data['url']}'; link.download = 'generated_image.png'; document.body.appendChild(link); link.click(); document.body.removeChild(link);"
-                       style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px; cursor: pointer;">
-                       DL
                     </a>
                     <button id="{button_id}" 
                             onclick="navigator.clipboard.writeText('{escaped_prompt}').then(() => alert('Prompt copied!')).catch(err => {{ var textarea = document.createElement('textarea'); textarea.value = '{escaped_prompt}'; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); alert('Prompt copied!'); }});"
@@ -305,38 +295,9 @@ with col2:
         with compare_cols[1]:
             st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
             after_placeholder = st.empty()
-            # Sparkle placeholder for After
-            after_placeholder.markdown("""
-            <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
-                <div class="sparkle-container">
-                    <div class="sparkle">✨</div>
-                    <div class="sparkle">✨</div>
-                    <div class="sparkle">✨</div>
-                </div>
-            </div>
-            
-            <style>
-            @keyframes sparkle {
-                0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-                50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
-            }
-            .sparkle-container {
-                text-align: center;
-            }
-            .sparkle {
-                display: inline-block;
-                font-size: 25px;
-                animation: sparkle 1.5s ease-in-out infinite;
-                margin: 0 8px;
-            }
-            .sparkle:nth-child(2) {
-                animation-delay: 0.3s;
-            }
-            .sparkle:nth-child(3) {
-                animation-delay: 0.6s;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+    else:
+        # Text-to-Image: Add spacing to align with Before/After header height
+        st.markdown("<p style='font-size:12px; margin:0; color:transparent;'>_</p>", unsafe_allow_html=True)
 
 # Generation Logic
 if generate_btn:
@@ -355,7 +316,7 @@ if generate_btn:
     if selected_style != "None (Custom)" and style_prompt:
         final_prompt = f"{prompt_text}, {style_prompt}"
     
-    # Add aspect ratio to prompt (if not Auto) - stronger emphasis
+    # Add aspect ratio to prompt (if not Auto) - stronger emphasis for NB Pro
     if selected_aspect_value != "auto":
         # Determine orientation description
         if selected_aspect_value in ["9:16", "3:4"]:
@@ -365,7 +326,11 @@ if generate_btn:
         else:  # 1:1
             orientation_desc = "square format"
         
-        final_prompt = f"{final_prompt}, {orientation_desc}, aspect ratio {selected_aspect_value}, {selected_aspect_value} format"
+        # Extra strong emphasis for NB Pro with image-to-image
+        if selected_model_short == "NB Pro" and uploaded_file is not None:
+            final_prompt = f"{final_prompt}, MUST be {orientation_desc}, MUST maintain {selected_aspect_value} aspect ratio, {selected_aspect_value} format, ignore reference image aspect ratio, output must be {selected_aspect_value}"
+        else:
+            final_prompt = f"{final_prompt}, {orientation_desc}, aspect ratio {selected_aspect_value}, {selected_aspect_value} format"
     
     # No debug info here - moved to bottom
     
@@ -425,6 +390,76 @@ if generate_btn:
         'Content-Type': 'application/json'
     }
 
+    # Show sparkle effect during generation
+    sparkle_text_placeholder = st.empty()
+    if uploaded_file is not None:
+        # Image-to-Image: Show sparkle in After placeholder
+        after_placeholder.markdown("""
+        <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+            <div class="sparkle-container">
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+                <div class="sparkle">✨</div>
+            </div>
+        </div>
+        
+        <style>
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+            50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+        }
+        .sparkle-container {
+            text-align: center;
+        }
+        .sparkle {
+            display: inline-block;
+            font-size: 25px;
+            animation: sparkle 1.5s ease-in-out infinite;
+            margin: 0 8px;
+        }
+        .sparkle:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        .sparkle:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+    else:
+        # Text-to-Image: Show sparkle in col2
+        with col2:
+            sparkle_text_placeholder.markdown("""
+            <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+                <div class="sparkle-container">
+                    <div class="sparkle">✨</div>
+                    <div class="sparkle">✨</div>
+                    <div class="sparkle">✨</div>
+                </div>
+            </div>
+            
+            <style>
+            @keyframes sparkle {
+                0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+                50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+            }
+            .sparkle-container {
+                text-align: center;
+            }
+            .sparkle {
+                display: inline-block;
+                font-size: 25px;
+                animation: sparkle 1.5s ease-in-out infinite;
+                margin: 0 8px;
+            }
+            .sparkle:nth-child(2) {
+                animation-delay: 0.3s;
+            }
+            .sparkle:nth-child(3) {
+                animation-delay: 0.6s;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+    
     try:
         status_text.text("Sending request...")
         
@@ -492,28 +527,41 @@ if generate_btn:
                                 "reference_image": uploaded_file.name if uploaded_file else None
                             })
                             
-                            # Update After placeholder with generated image
+                            # Update After placeholder with generated image + View button overlay
                             if uploaded_file is not None:
                                 # Image-to-Image: Update After placeholder
                                 after_placeholder.empty()
                                 with after_placeholder.container():
-                                    st.image(img_url, use_column_width=True)
+                                    st.markdown(f"""
+                                    <div style="position: relative;">
+                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                        <div style="position: absolute; top: 5px; right: 5px;">
+                                            <a href="{img_url}" target="_blank" 
+                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                               View
+                                            </a>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             else:
-                                # Text-to-Image: Display at top of col2
+                                # Text-to-Image: Clear sparkle and display at top of col2
+                                sparkle_text_placeholder.empty()
                                 with col2:
                                     st.balloons()
-                                    st.image(img_url, use_column_width=True)
+                                    st.markdown(f"""
+                                    <div style="position: relative;">
+                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                        <div style="position: absolute; top: 5px; right: 5px;">
+                                            <a href="{img_url}" target="_blank" 
+                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                               View
+                                            </a>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             
-                            # Download button with JavaScript forced download
+                            # Caption with size and resolution (no download button)
                             with col2:
-                                st.markdown(f"""
-                                <a href="javascript:void(0);" 
-                                   onclick="var link = document.createElement('a'); link.href = '{img_url}'; link.download = 'generated_image.png'; document.body.appendChild(link); link.click(); document.body.removeChild(link);"
-                                   style="display: inline-block; padding: 8px 16px; background-color: #4A90E2; color: white; 
-                                          text-decoration: none; border-radius: 5px; margin-top: 10px; cursor: pointer;">
-                                    📥 Download Image
-                                </a>
-                                """, unsafe_allow_html=True)
                                 st.caption(f"Size: {img_size_kb:.1f} KB | Resolution: {img_dimensions}")
                                 
                                 # Debug info at the bottom (collapsible)
