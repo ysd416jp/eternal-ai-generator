@@ -69,9 +69,22 @@ st.markdown("""
     /* Compact buttons */
     .stButton > button {
         padding: 0.2rem 0.5rem !important;
-        font-size: 12px !important;
+        font-size: 10px !important;
         height: auto !important;
-        min-height: 28px !important;
+        min-height: 24px !important;
+    }
+    
+    /* Compact text areas - 細く・フォント小さく */
+    .stTextArea textarea {
+        font-size: 11px !important;
+        padding: 0.3rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    /* Align buttons and text boxes */
+    div[data-testid="column"] {
+        display: flex !important;
+        align-items: flex-end !important;
     }
     
     /* Compact file uploader */
@@ -366,48 +379,52 @@ with col1:
         with preset_row1[0]:
             if st.button("Portrait", key="preset_portrait", use_container_width=True):
                 st.session_state.selected_preset = "Realistic Portrait"
+                st.session_state.custom_preset = STYLE_PRESETS["Realistic Portrait"]
                 st.rerun()
         with preset_row1[1]:
             if st.button("Cinema", key="preset_cinematic", use_container_width=True):
                 st.session_state.selected_preset = "Cinematic"
+                st.session_state.custom_preset = STYLE_PRESETS["Cinematic"]
                 st.rerun()
         with preset_row1[2]:
             if st.button("Street", key="preset_street", use_container_width=True):
                 st.session_state.selected_preset = "Street Photography"
+                st.session_state.custom_preset = STYLE_PRESETS["Street Photography"]
                 st.rerun()
         
         preset_row2 = st.columns(3)
         with preset_row2[0]:
             if st.button("Landscape", key="preset_landscape", use_container_width=True):
                 st.session_state.selected_preset = "Landscape"
+                st.session_state.custom_preset = STYLE_PRESETS["Landscape"]
                 st.rerun()
         with preset_row2[1]:
-            if st.button("None", key="preset_none", use_container_width=True):
+            if st.button("Clear", key="preset_none", use_container_width=True):
                 st.session_state.selected_preset = ""
                 st.session_state.custom_preset = ""
                 st.rerun()
         with preset_row2[2]:
-            st.write("")  # Empty space
+            if st.button("Edit", key="preset_edit", use_container_width=True):
+                st.session_state.show_preset_editor = not st.session_state.get('show_preset_editor', False)
+                st.rerun()
     
-    # Preset Editor (show only when preset is selected)
-    if st.session_state.get('selected_preset'):
+    # Preset Editor (show when Edit button is clicked)
+    if st.session_state.get('show_preset_editor', False):
         preset_content = st.text_area(
-            "",
-            value=STYLE_PRESETS.get(st.session_state.selected_preset, ""),
-            height=40,
+            "Preset Editor",
+            value=st.session_state.get('custom_preset', ''),
+            height=35,
             key="preset_editor",
-            placeholder="Edit preset..."
+            placeholder="Edit preset style..."
         )
         st.session_state.custom_preset = preset_content
-    else:
-        st.session_state.custom_preset = ""
     
     # Translation Area (3 rows) - 最小サイズ
     col_jp, col_t9e = st.columns([9, 1])
     with col_jp:
         japanese_prompt = st.text_area(
             "",
-            height=40,
+            height=25,
             placeholder="例: 20代の日本人女性がオフィスで働いている様子。全身ショット。",
             key="japanese_prompt"
         )
@@ -474,9 +491,15 @@ Translate accurately based on the actual content."""
                 
                 # Check if translation succeeded
                 if any(not v.startswith("Error") for v in st.session_state.translations.values()):
-                    st.success("✅ 翻訳完了！")
+                    st.success(f"✅ 翻訳完了！ ({len(st.session_state.translations)}件)")
+                    # Debug: Show translations
+                    with st.expander("Debug: 翻訳結果"):
+                        st.json(st.session_state.translations)
                 else:
                     st.error("❌ 翻訳に失敗しました。API キーを確認してください。")
+                    # Debug: Show errors
+                    with st.expander("Debug: エラー詳細"):
+                        st.json(st.session_state.translations)
                 
                 st.rerun()
     
@@ -486,7 +509,7 @@ Translate accurately based on the actual content."""
         hermes_result = st.text_area(
             "",
             value=st.session_state.translations.get("Hermes-3-Llama-3.1-405B", ""),
-            height=40,
+            height=25,
             disabled=True,
             placeholder="Hermes-3-Llama-3.1-405B",
             key="hermes_result"
@@ -504,7 +527,7 @@ Translate accurately based on the actual content."""
         deepseek_result = st.text_area(
             "",
             value=st.session_state.translations.get("DeepSeek-V3", ""),
-            height=40,
+            height=25,
             disabled=True,
             placeholder="DeepSeek-V3",
             key="deepseek_result"
@@ -519,7 +542,7 @@ Translate accurately based on the actual content."""
     # Prompt (English) - 最小サイズ
     user_prompt_input = st.text_area(
         "Prompt (English)", 
-        height=50,
+        height=35,
         value=st.session_state.get('user_prompt', ''),
         key="user_prompt_field"
     )
