@@ -8,7 +8,7 @@ from io import BytesIO
 from PIL import Image
 import datetime
 
-# Initialize session state for image history and translation
+# Initialize session state for image history
 if "generated_images" not in st.session_state:
     st.session_state.generated_images = []
 
@@ -78,7 +78,8 @@ st.markdown("""
         height: 20px !important;
     }
     
-    /* Purple radio buttons - CUSTOM CSS ANIMATION */
+    /* Purple radio buttons - FORCE CLEAN */
+    /* Target Streamlit's radio button structure */
     div[role="radiogroup"] label {
         display: flex !important;
         align-items: center !important;
@@ -87,14 +88,17 @@ st.markdown("""
         cursor: pointer !important;
     }
     
+    /* Hide the default input */
     div[role="radiogroup"] label input[type="radio"] {
         display: none !important;
     }
     
+    /* Hide ALL baseweb radio elements */
     div[data-baseweb="radio"] {
         display: none !important;
     }
     
+    /* Create custom radio button with ::before */
     div[role="radiogroup"] label::before {
         content: '' !important;
         display: inline-block !important;
@@ -109,20 +113,24 @@ st.markdown("""
         flex-shrink: 0 !important;
     }
     
+    /* White dot when checked */
     div[role="radiogroup"] label:has(input:checked)::before {
         box-shadow: inset 0 0 0 4px #0E1117, inset 0 0 0 10px #FFFFFF !important;
         background-color: #FFFFFF !important;
     }
     
+    /* Alternative: if :has() doesn't work, use data attribute */
     div[role="radiogroup"] label[data-checked="true"]::before {
         box-shadow: inset 0 0 0 4px #0E1117, inset 0 0 0 10px #FFFFFF !important;
         background-color: #FFFFFF !important;
     }
     
+    /* Remove gap between radio groups */
     div[role="radiogroup"] {
         gap: 12px !important;
     }
     
+    /* Horizontal layout */
     div[role="radiogroup"][data-baseweb="radio-group"] {
         display: flex !important;
         flex-wrap: wrap !important;
@@ -189,6 +197,43 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
+    /* Pills styling - dark mode */
+    div[data-testid="stPills"] {
+        background-color: transparent !important;
+    }
+    
+    div[data-testid="stPills"] button {
+        background-color: #1E2329 !important;
+        color: #E0E0E0 !important;
+        border: 1px solid #333 !important;
+        border-radius: 20px !important;
+        padding: 6px 16px !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    /* Unselected pills - small */
+    div[data-testid="stPills"] button:not([data-selected="true"]) {
+        transform: scale(0.95);
+        opacity: 0.7;
+    }
+    
+    /* Selected pills - large and bright */
+    div[data-testid="stPills"] button[data-selected="true"] {
+        background-color: #4A90E2 !important;
+        color: white !important;
+        border: 2px solid #4A90E2 !important;
+        box-shadow: 0 0 10px rgba(74, 144, 226, 0.5) !important;
+        transform: scale(1.05);
+        font-weight: 600 !important;
+    }
+    
+    /* Hover effect */
+    div[data-testid="stPills"] button:hover {
+        background-color: #2A5A8A !important;
+        transform: scale(1.02);
+    }
+    
     /* Hide fullscreen button */
     button[title="View fullscreen"] {
         display: none !important;
@@ -221,11 +266,138 @@ if not api_key:
     st.error("API key not found")
     st.stop()
 
+# Sidebar: Image Gallery (Ultra Compact with overlay buttons)
+with st.sidebar:
+    st.markdown("<p style='font-size:14px; margin:0; padding:2px 0;'>History ({0})</p>".format(len(st.session_state.generated_images)), unsafe_allow_html=True)
+    
+    if len(st.session_state.generated_images) > 0:
+        st.markdown("<hr style='margin:3px 0;'>", unsafe_allow_html=True)
+        # Show last 20 images - ultra compact with overlay
+        for idx, img_data in enumerate(reversed(st.session_state.generated_images[-20:])):
+            # Unique ID for each image
+            unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
+            
+            # Image with overlay button (View only)
+            st.markdown(f"""
+            <div style="position: relative; margin-bottom: 5px;">
+                <a href="{img_data['url']}" target="_blank">
+                    <img src="{img_data['url']}" style="width: 100%; border-radius: 5px; cursor: pointer;" />
+                </a>
+                <div style="position: absolute; top: 5px; right: 5px;">
+                    <a href="{img_data['url']}" target="_blank" 
+                       style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">
+                       View
+                    </a>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Ultra compact info directly below image
+            st.markdown(f"<p style='font-size:8px; margin:1px 0; color: #888;'>{img_data['model']} | {img_data['size_kb']}KB | {img_data['dimensions']}</p>", unsafe_allow_html=True)
+            
+            st.markdown("<hr style='margin:3px 0; opacity:0.2;'>", unsafe_allow_html=True)
+    else:
+        st.info("No images yet")
+
 # Main Tabs
 tab1, tab2 = st.tabs(["🎨 Generate", "🌐 Translate"])
 
+with tab2:
+    st.markdown("### 翻訳ツール")
+    st.markdown("日本語プロンプトを3つのAIモデルで英語に翻訳します")
+    
+    if not st.session_state.openrouter_api_key:
+        openrouter_key_input = st.text_input(
+            "OpenRouter API Key",
+            type="password",
+            help="https://openrouter.ai でAPIキーを取得してください"
+        )
+        if openrouter_key_input:
+            st.session_state.openrouter_api_key = openrouter_key_input
+            st.rerun()
+    else:
+        # Show credit balance
+        try:
+            balance_response = requests.get(
+                "https://openrouter.ai/api/v1/auth/key",
+                headers={"Authorization": f"Bearer {st.session_state.openrouter_api_key}"}
+            )
+            if balance_response.status_code == 200:
+                credit_data = balance_response.json()
+                credit_left = credit_data.get("data", {}).get("limit", 0)
+                st.info(f"💳 残クレジット: ${credit_left:.2f}")
+        except:
+            pass
+        
+        japanese_prompt = st.text_area(
+            "日本語プロンプト",
+            height=120,
+            placeholder="例: 20代の日本人女性がオフィスで働いている様子。全身ショット。"
+        )
+        
+        col_translate, col_clear = st.columns([3, 1])
+        with col_translate:
+            translate_btn = st.button("🔄 翻訳", type="primary", use_container_width=True)
+        with col_clear:
+            if st.button("🗑️ クリア"):
+                st.session_state.translations = {}
+                st.session_state.selected_translation = ""
+                st.rerun()
+        
+        if translate_btn and japanese_prompt:
+            models = {
+                "MythoMax-L2-13B": "mythomax-l2-13b",
+                "DeepSeek-V3": "deepseek/deepseek-chat",
+                "Hermes-3-Llama-3.1-405B": "nousresearch/hermes-3-llama-3.1-405b"
+            }
+            
+            st.session_state.translations = {}
+            
+            with st.spinner("翻訳中..."):
+                for model_name, model_id in models.items():
+                    try:
+                        response = requests.post(
+                            "https://openrouter.ai/api/v1/chat/completions",
+                            headers={
+                                "Authorization": f"Bearer {st.session_state.openrouter_api_key}",
+                                "Content-Type": "application/json"
+                            },
+                            json={
+                                "model": model_id,
+                                "messages": [{
+                                    "role": "user",
+                                    "content": f"Translate the following Japanese text to English for image generation prompt. Keep it concise and descriptive:\n\n{japanese_prompt}"
+                                }]
+                            },
+                            timeout=30
+                        )
+                        
+                        if response.status_code == 200:
+                            translation = response.json()["choices"][0]["message"]["content"]
+                            st.session_state.translations[model_name] = translation
+                        else:
+                            st.session_state.translations[model_name] = f"Error: {response.status_code}"
+                    except Exception as e:
+                        st.session_state.translations[model_name] = f"Error: {str(e)}"
+        
+        if st.session_state.translations:
+            st.markdown("---")
+            st.markdown("### 📊 翻訳結果")
+            
+            for model_name, translation in st.session_state.translations.items():
+                with st.expander(f"**{model_name}**", expanded=True):
+                    st.text_area(
+                        "",
+                        value=translation,
+                        height=100,
+                        key=f"trans_{model_name}",
+                        disabled=True
+                    )
+                    if st.button(f"✅ この翻訳を使う", key=f"use_{model_name}"):
+                        st.session_state.selected_translation = translation
+                        st.success("✅ 翻訳を選択しました！「Generate」タブに移動してください")
+
 with tab1:
-    # Image Generation Tab
     # Style Presets (English only, no icons)
     STYLE_PRESETS = {
         "None (Custom)": "",
@@ -263,7 +435,7 @@ with tab1:
         else:
             style_prompt = ""
         
-        # Use selected translation if available, otherwise use default or URL prompt
+        # Use translation if available, otherwise use URL prompt or default
         default_prompt = st.session_state.selected_translation if st.session_state.selected_translation else (url_prompt if url_prompt else "A beautiful Japanese woman in her 20s working in an office. Full body shot.")
         
         prompt_text = st.text_area(
@@ -271,189 +443,36 @@ with tab1:
             height=80,
             value=default_prompt
         )
-
-# Sidebar: Image Gallery (Ultra Compact with overlay buttons)
-with st.sidebar:
-    st.markdown("<p style='font-size:14px; margin:0; padding:2px 0;'>History ({0})</p>".format(len(st.session_state.generated_images)), unsafe_allow_html=True)
     
-    if len(st.session_state.generated_images) > 0:
-        st.markdown("<hr style='margin:3px 0;'>", unsafe_allow_html=True)
-        # Show last 20 images - ultra compact with overlay
-        for idx, img_data in enumerate(reversed(st.session_state.generated_images[-20:])):
-            # Unique ID for each image
-            unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
-            
-            # Image with overlay button (View only)
-            st.markdown(f"""
-            <div style="position: relative; margin-bottom: 5px;">
-                <a href="{img_data['url']}" target="_blank">
-                    <img src="{img_data['url']}" style="width: 100%; border-radius: 5px; cursor: pointer;" />
-                </a>
-                <div style="position: absolute; top: 5px; right: 5px;">
-                    <a href="{img_data['url']}" target="_blank" 
-                       style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">
-                       View
-                    </a>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Ultra compact info directly below image
-            st.markdown(f"<p style='font-size:8px; margin:1px 0; color: #888;'>{img_data['model']} | {img_data['size_kb']}KB | {img_data['dimensions']}</p>", unsafe_allow_html=True)
-            
-            st.markdown("<hr style='margin:3px 0; opacity:0.2;'>", unsafe_allow_html=True)
-    else:
-        st.info("No images yet")
-
-# Style Presets (English only, no icons)
-STYLE_PRESETS = {
-    "None (Custom)": "",
-    "Realistic Portrait": "photorealistic, professional portrait photography, natural lighting, shot on Canon EOS R5, 85mm f/1.2, natural skin texture, realistic features, shallow depth of field, soft studio lighting, lifelike",
-    "Cinematic": "cinematic photography, film grain, anamorphic lens, natural color grading, shot on ARRI Alexa, dramatic lighting, movie still, cinematic composition",
-    "Street Photography": "candid street photography, natural lighting, realistic atmosphere, documentary style, shot on Leica M10, 35mm lens, photojournalism, authentic moment",
-    "Commercial": "commercial photography, professional studio lighting, high resolution, sharp focus, advertising quality, clean background, product photography style",
-    "Landscape": "landscape photography, golden hour lighting, natural colors, shot on Sony A7R IV, 24mm lens, vivid details, realistic scenery, high dynamic range",
-    "Art Photography": "fine art photography, creative lighting, artistic composition, professional color grading, gallery quality, expressive mood"
-}
-
-# Input Area
-col1, col2 = st.columns([1, 1])
-with col1:
-    # Translation Tool (3 rows compact layout)
-    st.markdown("<p style='font-size:14px; margin:0;padding:2px 0;'>翻訳ツール（日本語→英語）</p>", unsafe_allow_html=True)
+    # Model options (outside col1 block)
+    model_options = {
+        "Qwen": "Qwen-Image-Edit-2509",
+        "NB Pro": "gemini-3-pro-image-preview",
+        "NB": "gemini-2.5-flash-image",
+        "SD4.5": "seedream-4-5-251128",
+        "Flux": "flux-2-pro"
+    }
     
-    # Row 1: Japanese input
-    japanese_prompt = st.text_input(
-        "日本語",
-        placeholder="例: 20代の日本人女性がオフィスで働いている様子",
-        label_visibility="collapsed"
-    )
+    model_full_names = {
+        "Qwen": "Qwen Image Edit (最も柔軟・最安・18+)",
+        "NB Pro": "Nano Banana Pro (最高品質・高速)",
+        "NB": "Nano Banana (高品質)",
+        "SD4.5": "Seedream 4.5 (新モデル)",
+        "Flux": "Flux 2 Pro (プロ品質)"
+    }
     
-    translate_btn = st.button("🔄 翻訳", use_container_width=True)
-    
-    if translate_btn and japanese_prompt and st.session_state.openrouter_api_key:
-        with st.spinner("翻訳中..."):
-            # Translation models (only 2)
-            models = {
-                "DeepSeek-V3": "deepseek/deepseek-chat",
-                "Hermes-3-Llama-3.1-405B": "nousresearch/hermes-3-llama-3.1-405b"
-            }
-            
-            st.session_state.translations = {}
-            
-            for model_name, model_id in models.items():
-                try:
-                    response = requests.post(
-                        "https://openrouter.ai/api/v1/chat/completions",
-                        headers={
-                            "Authorization": f"Bearer {st.session_state.openrouter_api_key}",
-                            "Content-Type": "application/json"
-                        },
-                        json={
-                            "model": model_id,
-                            "messages": [{
-                                "role": "user",
-                                "content": f"Translate the following Japanese text to English for use in an image generation prompt. Only provide the English translation, no explanations:\n\n{japanese_prompt}"
-                            }]
-                        },
-                        timeout=30
-                    )
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        translation = result["choices"][0]["message"]["content"].strip()
-                        st.session_state.translations[model_name] = translation
-                except Exception as e:
-                    st.session_state.translations[model_name] = f"Error: {str(e)}"
-    
-    # Row 2: DeepSeek-V3 translation
-    if "DeepSeek-V3" in st.session_state.translations:
-        col_t1, col_b1 = st.columns([4, 1])
-        with col_t1:
-            st.text_input(
-                "DeepSeek-V3",
-                value=st.session_state.translations["DeepSeek-V3"],
-                disabled=True,
-                label_visibility="collapsed"
-            )
-        with col_b1:
-            if st.button("Use", key="use_deepseek"):
-                st.session_state.selected_translation = st.session_state.translations["DeepSeek-V3"]
-                st.rerun()
-    
-    # Row 3: Hermes-3 translation
-    if "Hermes-3-Llama-3.1-405B" in st.session_state.translations:
-        col_t2, col_b2 = st.columns([4, 1])
-        with col_t2:
-            st.text_input(
-                "Hermes-3",
-                value=st.session_state.translations["Hermes-3-Llama-3.1-405B"],
-                disabled=True,
-                label_visibility="collapsed"
-            )
-        with col_b2:
-            if st.button("Use", key="use_hermes"):
-                st.session_state.selected_translation = st.session_state.translations["Hermes-3-Llama-3.1-405B"]
-                st.rerun()
-    
-    st.markdown("<hr style='margin:10px 0;'>", unsafe_allow_html=True)
-    
-    # Reference Image upload (moved below translation)
-    uploaded_file = st.file_uploader(
-        "Reference Image (Optional)", 
-        type=["jpg", "jpeg", "png", "webp"],
-        help="Upload a reference image for Image-to-Image generation (Max 5MB)"
-    )
-    
-    # Style preset selector
-    selected_style = st.selectbox(
-        "Style Preset",
-        options=list(STYLE_PRESETS.keys())
-    )
-    
-    # Show selected style description (editable)
-    if selected_style != "None (Custom)":
-        style_prompt = st.text_area(
-            "Style Details (Editable)",
-            value=STYLE_PRESETS[selected_style],
-            height=60
-        )
-    else:
-        style_prompt = ""
-    
-    prompt_text = st.text_area(
-        "Prompt (English)", 
-        height=80,
-        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 20s working in an office. Full body shot."
-    )
-        
-        model_options = {
-            "Qwen": "Qwen-Image-Edit-2509",
-            "NB Pro": "gemini-3-pro-image-preview",
-            "NB": "gemini-2.5-flash-image",
-            "SD4.5": "seedream-4-5-251128",
-            "Flux": "flux-2-pro"
-        }
-        
-        model_full_names = {
-            "Qwen": "Qwen Image Edit (最も柔軟・最安・18+)",
-            "NB Pro": "Nano Banana Pro (最高品質・高速)",
-            "NB": "Nano Banana (高品質)",
-            "SD4.5": "Seedream 4.5 (新モデル)",
-            "Flux": "Flux 2 Pro (プロ品質)"
-        }
-        
-        selected_model_short = st.radio(
-            "label",
+    with col1:
+        # Model selection with st.pills() - modern button style
+        selected_model_short = st.pills(
+            "Model",
             options=list(model_options.keys()),
-            horizontal=True,
-            index=0,
+            default="Qwen",
             label_visibility="collapsed"
         )
         
         selected_model_id = model_options[selected_model_short]
         
-        # 3) Aspect Ratio selection (no label, compact)
+        # Aspect Ratio selection with st.pills() - modern button style
         aspect_ratio_options = {
             "Auto": "auto",
             "21:9": "21:9",
@@ -463,11 +482,10 @@ with col1:
             "9:16": "9:16"
         }
         
-        selected_aspect_ratio = st.radio(
-            "aspect_label",
+        selected_aspect_ratio = st.pills(
+            "Aspect Ratio",
             options=list(aspect_ratio_options.keys()),
-            horizontal=True,
-            index=0,
+            default="Auto",
             label_visibility="collapsed"
         )
         
@@ -485,23 +503,19 @@ with col1:
         
         generate_btn = st.button("Generate", type="primary")
 
-    with col2:
-        # Always show Before & After structure (unified layout)
-        compare_cols = st.columns(2)
-        with compare_cols[0]:
-            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
-            before_placeholder = st.empty()
-            if uploaded_file is not None:
-                # Image-to-Image: Show uploaded image
-                before_placeholder.image(uploaded_file, use_column_width=True)
-            # else: Text-to-Image will show dummy black image when Generate is clicked
+with col2:
+    # Always show Before & After structure (unified layout)
+    compare_cols = st.columns(2)
+    with compare_cols[0]:
+        st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
+        before_placeholder = st.empty()
         
-        with compare_cols[1]:
-            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
-            after_placeholder = st.empty()
+    with compare_cols[1]:
+        st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
+        after_placeholder = st.empty()
 
-    # Generation Logic
-    if generate_btn:
+# Generation Logic
+if generate_btn:
     # Move debug info to bottom
     debug_placeholder = st.empty()
     
@@ -517,7 +531,7 @@ with col1:
     if selected_style != "None (Custom)" and style_prompt:
         final_prompt = f"{prompt_text}, {style_prompt}"
     
-    # Add aspect ratio to prompt (if not Auto) - stronger emphasis
+    # Add aspect ratio to prompt (if not Auto) - stronger emphasis for NB Pro
     if selected_aspect_value != "auto":
         # Determine orientation description
         if selected_aspect_value in ["9:16", "3:4"]:
@@ -527,9 +541,11 @@ with col1:
         else:  # 1:1
             orientation_desc = "square format"
         
-        final_prompt = f"{final_prompt}, {orientation_desc}, aspect ratio {selected_aspect_value}, {selected_aspect_value} format"
-    
-    # No debug info here - moved to bottom
+        # Extra strong emphasis for NB Pro with image-to-image
+        if selected_model_short == "NB Pro" and uploaded_file is not None:
+            final_prompt = f"{final_prompt}, MUST be {orientation_desc}, MUST maintain {selected_aspect_value} aspect ratio, {selected_aspect_value} format, ignore reference image aspect ratio, output must be {selected_aspect_value}"
+        else:
+            final_prompt = f"{final_prompt}, {orientation_desc}, aspect ratio {selected_aspect_value}, {selected_aspect_value} format"
     
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
@@ -553,6 +569,26 @@ with col1:
         except Exception as e:
             st.error(f"Failed to load image: {e}")
             st.stop()
+            
+        # Image-to-Image: Show uploaded image in Before
+        before_placeholder.image(uploaded_file, use_column_width=True)
+    else:
+        # Text-to-Image: Show dummy black image in Before
+        aspect_map = {
+            "21:9": (420, 180),
+            "16:9": (320, 180),
+            "4:3": (240, 180),
+            "1:1": (180, 180),
+            "9:16": (180, 320),
+            "auto": (180, 180)
+        }
+        width, height = aspect_map.get(selected_aspect_value, (180, 180))
+        
+        before_placeholder.markdown(f"""
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px;"></div>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Payload configuration (Legacy API format)
     # Build content array
@@ -587,29 +623,9 @@ with col1:
         'Content-Type': 'application/json'
     }
 
-    # Show dummy black image for Text-to-Image (in Before area)
-    if uploaded_file is None:
-        # Calculate aspect ratio dimensions
-        aspect_map = {
-            "21:9": (420, 180),
-            "16:9": (320, 180),
-            "4:3": (240, 180),
-            "1:1": (180, 180),
-            "9:16": (180, 320),
-            "auto": (180, 180)
-        }
-        width, height = aspect_map.get(selected_aspect_value, (180, 180))
-        
-        # Show dummy image in Before area (完全な暗黒)
-        before_placeholder.markdown(f"""
-        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px;"></div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    # Show stylish purple particle effect - 360度ランダムに飛び立つ（原子核の電子）
+    # Show atomic nucleus + electrons particle effect during generation
     after_placeholder.markdown("""
-    <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden; background-color: #0E1117;">
+    <div style="width: 100%; display: flex; justify-content: center; align-items: center; height: 250px;">
         <div class="atom-container">
             <div class="nucleus"></div>
             <div class="electron"></div>
@@ -687,11 +703,11 @@ with col1:
         left: 50%;
         width: 12px;
         height: 12px;
-        margin: -6px 0 0 -6px;
-        background: radial-gradient(circle, #FFFFFF, #A78BFA);
+        background: radial-gradient(circle, #A78BFA, #8B5CF6);
         border-radius: 50%;
+        transform: translate(-50%, -50%);
         animation: nucleusPulse 3s ease-in-out infinite;
-        z-index: 2;
+        z-index: 10;
     }
     
     .electron {
@@ -700,9 +716,9 @@ with col1:
         left: 50%;
         width: 8px;
         height: 8px;
-        margin: -4px 0 0 -4px;
-        background: radial-gradient(circle, #FFFFFF, #A78BFA, #8B5CF6);
+        background: radial-gradient(circle, #FFFFFF, #A78BFA);
         border-radius: 50%;
+        transform: translate(-50%, -50%);
         animation: glow 2s ease-in-out infinite;
     }
     
@@ -811,7 +827,7 @@ with col1:
                                   res_data.get("output_url"))
                         
                         if img_url:
-                            # Get image metadata (NO aspect ratio adjustment)
+                            # Get image metadata & Prepare for Download
                             try:
                                 img_response = requests.get(img_url)
                                 img_size_kb = len(img_response.content) / 1024
@@ -821,16 +837,11 @@ with col1:
                                 img_size_kb = 0
                                 img_dimensions = "Unknown"
                                 status_text.text(f"Error loading image: {e}")
-                            except Exception as e:
-                                img_size_kb = 0
-                                img_dimensions = "Unknown"
-                                img_pil = None
-                                status_text.text(f"Error adjusting image: {e}")
                             
-                            # 5) Add to history with full prompt (final_prompt)
+                            # 5) Add to history
                             st.session_state.generated_images.append({
                                 "url": img_url,
-                                "prompt": final_prompt,  # Full prompt with style + aspect ratio
+                                "prompt": final_prompt,
                                 "model": selected_model_short,
                                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "size_kb": f"{img_size_kb:.1f}",
@@ -838,44 +849,30 @@ with col1:
                                 "reference_image": uploaded_file.name if uploaded_file else None
                             })
                             
-                            # Update After placeholder with generated image + View button overlay
-                            if uploaded_file is not None:
-                                # Image-to-Image: Update After placeholder
-                                after_placeholder.empty()
-                                with after_placeholder.container():
-                                    st.markdown(f"""
-                                    <div style="position: relative;">
-                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
-                                        <div style="position: absolute; top: 5px; right: 5px;">
-                                            <a href="{img_url}" target="_blank" 
-                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
-                                               View
-                                            </a>
-                                        </div>
+                            # Update After placeholder with generated image + View button ONLY
+                            after_placeholder.empty()
+                            with after_placeholder.container():
+                                st.markdown(f"""
+                                <div style="position: relative;">
+                                    <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                    <div style="position: absolute; top: 5px; right: 5px;">
+                                        <a href="{img_url}" target="_blank" 
+                                           style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                           View
+                                        </a>
                                     </div>
-                                    """, unsafe_allow_html=True)
-                            else:
-                                # Text-to-Image: Clear sparkle and display at top of col2
-                                after_placeholder.empty()
-                                st.balloons()
-                                with after_placeholder.container():
-                                    st.markdown(f"""
-                                    <div style="position: relative;">
-                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
-                                        <div style="position: absolute; top: 5px; right: 5px;">
-                                            <a href="{img_url}" target="_blank" 
-                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
-                                               View
-                                            </a>
-                                        </div>
-                                    </div>
-                                    """, unsafe_allow_html=True)
+                                </div>
+                                """, unsafe_allow_html=True)
                             
-                            # Caption with size and resolution (no download button)
+                            # Balloons for Text-to-Image only
+                            if uploaded_file is None:
+                                st.balloons()
+                            
+                            # Caption with size and resolution
                             with col2:
                                 st.caption(f"Size: {img_size_kb:.1f} KB | Resolution: {img_dimensions}")
                                 
-                                # Debug info at the bottom (collapsible)
+                                # Debug info
                                 with st.expander("Debug Info (Click to expand)", expanded=False):
                                     st.info("Final Prompt:")
                                     st.text_area("", value=final_prompt, height=100, disabled=True)
@@ -903,47 +900,10 @@ with col1:
                 else:
                     st.error(f"Communication error: {check_res.status_code}")
             else:
-                st.warning("Timeout: Generation took longer than expected.")
-        
+                st.error("Timeout.")
+
         else:
-            st.error(f"Request failed with status code {response.status_code}")
-            st.json(response.json() if response.headers.get("content-type") == "application/json" else response.text)
-    
+            st.error(f"Request failed: {response.text}")
+
     except Exception as e:
-        st.error(f"An error occurred: {e}")
-
-# OpenRouter API Key input (at the bottom of the page)
-st.markdown("<hr style='margin:30px 0;'>", unsafe_allow_html=True)
-st.markdown("### ⚙️ OpenRouter API 設定")
-
-if not st.session_state.openrouter_api_key:
-    openrouter_key_input = st.text_input(
-        "OpenRouter API Key",
-        type="password",
-        help="https://openrouter.ai/ で取得したAPIキーを入力してください"
-    )
-    if openrouter_key_input:
-        st.session_state.openrouter_api_key = openrouter_key_input
-        st.success("✅ APIキーが保存されました！")
-        st.rerun()
-else:
-    # Show credit balance
-    col_credit1, col_credit2 = st.columns([3, 1])
-    with col_credit1:
-        try:
-            balance_response = requests.get(
-                "https://openrouter.ai/api/v1/auth/key",
-                headers={"Authorization": f"Bearer {st.session_state.openrouter_api_key}"}
-            )
-            if balance_response.status_code == 200:
-                credit_data = balance_response.json()
-                credit_left = credit_data.get("data", {}).get("limit", 0)
-                st.info(f"💳 残クレジット: ${credit_left:.2f}")
-        except:
-            st.info("💳 残クレジット: 取得できませんでした")
-    
-    with col_credit2:
-        if st.button("🗑️ APIキーをリセット"):
-            st.session_state.openrouter_api_key = ""
-            st.rerun()
-
+        st.error(f"Error: {e}")
