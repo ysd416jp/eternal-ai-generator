@@ -108,15 +108,9 @@ st.markdown("""
         color: #222 !important;
     }
     
-    /* Force images to open in new tab (fullscreen button) */
+    /* Hide fullscreen button */
     button[title="View fullscreen"] {
-        pointer-events: auto !important;
-    }
-    button[title="View fullscreen"]:after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        cursor: pointer;
+        display: none !important;
     }
     
     /* Dark mode for all text (except labels) */
@@ -162,28 +156,22 @@ with st.sidebar:
             # Unique ID for each image
             unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
             
-            # Escape prompt for JavaScript (properly)
-            escaped_prompt = img_data['prompt'].replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '')
-            
-            # Unique button IDs
-            button_id = f"copy_btn_{unique_id}"
-            dl_id = f"dl_btn_{unique_id}"
-            
-            # Image with overlay buttons (View, DL, Copy Prompt)
+            # Image with overlay button (View only)
             st.markdown(f"""
             <div style="position: relative; margin-bottom: 5px;">
                 <a href="{img_data['url']}" target="_blank">
                     <img src="{img_data['url']}" style="width: 100%; border-radius: 5px; cursor: pointer;" />
                 </a>
-                <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 3px;">
+                <div style="position: absolute; top: 5px; right: 5px;">
                     <a href="{img_data['url']}" target="_blank" 
                        style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">
                        View
                     </a>
-                    <button id="{button_id}" 
-                            onclick="navigator.clipboard.writeText('{escaped_prompt}').then(() => alert('Prompt copied!')).catch(err => {{ var textarea = document.createElement('textarea'); textarea.value = '{escaped_prompt}'; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); alert('Prompt copied!'); }});"
-                            style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; border: none; cursor: pointer; font-size: 9px;"
-                            title="Copy full prompt">📋</button>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)>
+                       View
+                    </a>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -535,18 +523,38 @@ if generate_btn:
                                 "reference_image": uploaded_file.name if uploaded_file else None
                             })
                             
-                            # Update After placeholder with generated image
+                            # Update After placeholder with generated image + View button overlay
                             if uploaded_file is not None:
                                 # Image-to-Image: Update After placeholder
                                 after_placeholder.empty()
                                 with after_placeholder.container():
-                                    st.image(img_url, use_column_width=True)
+                                    st.markdown(f"""
+                                    <div style="position: relative;">
+                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                        <div style="position: absolute; top: 5px; right: 5px;">
+                                            <a href="{img_url}" target="_blank" 
+                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                               View
+                                            </a>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             else:
                                 # Text-to-Image: Clear sparkle and display at top of col2
                                 sparkle_placeholder.empty()
                                 with col2:
                                     st.balloons()
-                                    st.image(img_url, use_column_width=True)
+                                    st.markdown(f"""
+                                    <div style="position: relative;">
+                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                        <div style="position: absolute; top: 5px; right: 5px;">
+                                            <a href="{img_url}" target="_blank" 
+                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                               View
+                                            </a>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                             
                             # Caption with size and resolution (no download button)
                             with col2:
