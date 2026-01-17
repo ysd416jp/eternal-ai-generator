@@ -687,9 +687,9 @@ if generate_btn:
                             with after_placeholder.container():
                                 # Build buttons HTML
                                 buttons_html = f"""
-                                <div style="position: absolute; top: 8px; right: 8px; display: flex; flex-direction: row; gap: 6px; z-index: 100;">
+                                <div style="position: absolute; top: 8px; right: 8px; display: flex; flex-direction: row; gap: 8px; z-index: 100;">
                                     <a href="{img_url}" target="_blank" 
-                                       style="background-color: rgba(0,0,0,0.6); color: white; padding: 4px 12px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; height: 24px;">
+                                       style="background-color: rgba(0,0,0,0.7); color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; height: 26px;">
                                        View
                                     </a>
                                 """
@@ -697,7 +697,7 @@ if generate_btn:
                                 if dl_link:
                                     buttons_html += f"""
                                     <a href="{dl_link}" download="{dl_filename}" 
-                                       style="background-color: rgba(255,255,255,0.95); color: #000; padding: 4px 12px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; height: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                                       style="background-color: rgba(0,0,0,0.7); color: white; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 11px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; height: 26px;">
                                        Save
                                     </a>
                                     """
