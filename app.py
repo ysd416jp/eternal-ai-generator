@@ -396,11 +396,7 @@ with col2:
     with compare_cols[0]:
         st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
         before_placeholder = st.empty()
-        if uploaded_file is not None:
-            # Image-to-Image: Show uploaded image
-            before_placeholder.image(uploaded_file, use_column_width=True)
-        # else: Text-to-Image will show dummy black image when Generate is clicked
-    
+        
     with compare_cols[1]:
         st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
         after_placeholder = st.empty()
@@ -438,8 +434,6 @@ if generate_btn:
         else:
             final_prompt = f"{final_prompt}, {orientation_desc}, aspect ratio {selected_aspect_value}, {selected_aspect_value} format"
     
-    # No debug info here - moved to bottom
-    
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
     if uploaded_file is not None:
@@ -462,6 +456,26 @@ if generate_btn:
         except Exception as e:
             st.error(f"Failed to load image: {e}")
             st.stop()
+            
+        # Image-to-Image: Show uploaded image in Before
+        before_placeholder.image(uploaded_file, use_column_width=True)
+    else:
+        # Text-to-Image: Show dummy black image in Before
+        aspect_map = {
+            "21:9": (420, 180),
+            "16:9": (320, 180),
+            "4:3": (240, 180),
+            "1:1": (180, 180),
+            "9:16": (180, 320),
+            "auto": (180, 180)
+        }
+        width, height = aspect_map.get(selected_aspect_value, (180, 180))
+        
+        before_placeholder.markdown(f"""
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px;"></div>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Payload configuration (Legacy API format)
     # Build content array
@@ -495,25 +509,6 @@ if generate_btn:
         'x-api-key': api_key,
         'Content-Type': 'application/json'
     }
-
-    if uploaded_file is None:
-        # Calculate aspect ratio dimensions
-        aspect_map = {
-            "21:9": (420, 180),
-            "16:9": (320, 180),
-            "4:3": (240, 180),
-            "1:1": (180, 180),
-            "9:16": (180, 320),
-            "auto": (180, 180)
-        }
-        width, height = aspect_map.get(selected_aspect_value, (180, 180))
-        
-        # Show dummy image in Before area (完全な暗黒)
-        before_placeholder.markdown(f"""
-        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px;"></div>
-        </div>
-        """, unsafe_allow_html=True)
 
     # パーティクルの設定
     particle_count = 30
@@ -656,26 +651,30 @@ if generate_btn:
                                   res_data.get("output_url"))
                         
                         if img_url:
-                            # Get image metadata (NO aspect ratio adjustment)
+                            # Get image metadata & Prepare for Download
                             try:
                                 img_response = requests.get(img_url)
-                                img_size_kb = len(img_response.content) / 1024
-                                img_pil = Image.open(BytesIO(img_response.content))
+                                img_bytes = img_response.content
+                                img_size_kb = len(img_bytes) / 1024
+                                img_pil = Image.open(BytesIO(img_bytes))
                                 img_dimensions = f"{img_pil.width}x{img_pil.height}"
+                                
+                                # Convert to Base64 for Direct Download Button
+                                b64_data = base64.b64encode(img_bytes).decode()
+                                mime_type = "image/png" # Default assumption
+                                dl_filename = f"eternal_ai_{int(time.time())}.png"
+                                dl_link = f"data:{mime_type};base64,{b64_data}"
+                                
                             except Exception as e:
                                 img_size_kb = 0
                                 img_dimensions = "Unknown"
+                                dl_link = None
                                 status_text.text(f"Error loading image: {e}")
-                            except Exception as e:
-                                img_size_kb = 0
-                                img_dimensions = "Unknown"
-                                img_pil = None
-                                status_text.text(f"Error adjusting image: {e}")
                             
-                            # 5) Add to history with full prompt (final_prompt)
+                            # 5) Add to history
                             st.session_state.generated_images.append({
                                 "url": img_url,
-                                "prompt": final_prompt,  # Full prompt with style + aspect ratio
+                                "prompt": final_prompt,
                                 "model": selected_model_short,
                                 "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 "size_kb": f"{img_size_kb:.1f}",
@@ -683,17 +682,28 @@ if generate_btn:
                                 "reference_image": uploaded_file.name if uploaded_file else None
                             })
                             
-                            # Update After placeholder with generated image + View button overlay
+                            # Update After placeholder with generated image + View & Save buttons
                             after_placeholder.empty()
                             with after_placeholder.container():
+                                # SaveボタンのHTML生成（dl_linkがある場合のみ）
+                                save_btn_html = ""
+                                if dl_link:
+                                    save_btn_html = f"""
+                                    <a href="{dl_link}" download="{dl_filename}" 
+                                       style="background: rgba(255,255,255,0.9); color: black; padding: 4px 10px; border-radius: 3px; text-decoration: none; font-size: 11px; font-weight: bold; margin-left: 5px;">
+                                       Save
+                                    </a>
+                                    """
+                                
                                 st.markdown(f"""
                                 <div style="position: relative;">
                                     <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
-                                    <div style="position: absolute; top: 5px; right: 5px;">
+                                    <div style="position: absolute; top: 5px; right: 5px; display: flex; align-items: center;">
                                         <a href="{img_url}" target="_blank" 
-                                           style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                           style="background: rgba(0,0,0,0.6); color: white; padding: 4px 10px; border-radius: 3px; text-decoration: none; font-size: 11px;">
                                            View
                                         </a>
+                                        {save_btn_html}
                                     </div>
                                 </div>
                                 """, unsafe_allow_html=True)
@@ -702,11 +712,11 @@ if generate_btn:
                             if uploaded_file is None:
                                 st.balloons()
                             
-                            # Caption with size and resolution (no download button)
+                            # Caption with size and resolution
                             with col2:
                                 st.caption(f"Size: {img_size_kb:.1f} KB | Resolution: {img_dimensions}")
                                 
-                                # Debug info at the bottom (collapsible)
+                                # Debug info
                                 with st.expander("Debug Info (Click to expand)", expanded=False):
                                     st.info("Final Prompt:")
                                     st.text_area("", value=final_prompt, height=100, disabled=True)
