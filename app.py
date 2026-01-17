@@ -69,18 +69,42 @@ st.markdown("""
         height: 20px !important;
     }
     
-    /* Purple radio buttons */
+    /* Purple radio buttons - FORCE OVERRIDE */
+    input[type="radio"] {
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        width: 16px !important;
+        height: 16px !important;
+        border: 2px solid #8B5CF6 !important;
+        border-radius: 50% !important;
+        background-color: transparent !important;
+        cursor: pointer !important;
+    }
+    
     input[type="radio"]:checked {
         background-color: #8B5CF6 !important;
         border-color: #8B5CF6 !important;
+        box-shadow: inset 0 0 0 3px #0E1117 !important;
     }
     
-    input[type="radio"] {
-        border-color: #8B5CF6 !important;
-    }
-    
+    /* Radio button labels */
     div[role="radiogroup"] label {
         color: #E0E0E0 !important;
+    }
+    
+    /* Streamlit radio button container */
+    div[data-baseweb="radio"] > div {
+        background-color: transparent !important;
+    }
+    
+    div[data-baseweb="radio"] > div > div {
+        border-color: #8B5CF6 !important;
+        background-color: transparent !important;
+    }
+    
+    div[data-baseweb="radio"] > div > div[data-checked="true"] {
+        background-color: #8B5CF6 !important;
+        border-color: #8B5CF6 !important;
     }
     
     /* Purple Generate button */
@@ -429,42 +453,100 @@ if generate_btn:
         }
         width, height = aspect_map.get(selected_aspect_value, (180, 180))
         
-        # Show black dummy image in Before area
+        # Show dummy image in Before area (same as background color)
         before_placeholder.markdown(f"""
         <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #000; border-radius: 5px;"></div>
+            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #0E1117; border-radius: 5px; border: 1px solid #333;"></div>
         </div>
         """, unsafe_allow_html=True)
     
-    # Show sparkle effect in After area (unified for both modes)
+    # Show stylish purple particle effect in After area (unified for both modes)
     after_placeholder.markdown("""
-    <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
-        <div class="sparkle-container">
-            <div class="sparkle">✨</div>
-            <div class="sparkle">✨</div>
-            <div class="sparkle">✨</div>
+    <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden;">
+        <div class="particle-container">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
         </div>
     </div>
     
     <style>
-    @keyframes sparkle {
-        0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-        50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+    @keyframes float {
+        0% {
+            transform: translateY(100px) translateX(0) scale(0);
+            opacity: 0;
+        }
+        50% {
+            opacity: 1;
+        }
+        100% {
+            transform: translateY(-100px) translateX(50px) scale(1);
+            opacity: 0;
+        }
     }
-    .sparkle-container {
-        text-align: center;
+    
+    @keyframes wave {
+        0%, 100% {
+            transform: translateX(0) translateY(0);
+        }
+        25% {
+            transform: translateX(20px) translateY(-20px);
+        }
+        50% {
+            transform: translateX(0) translateY(-40px);
+        }
+        75% {
+            transform: translateX(-20px) translateY(-20px);
+        }
     }
-    .sparkle {
-        display: inline-block;
-        font-size: 25px;
-        animation: sparkle 1.5s ease-in-out infinite;
-        margin: 0 8px;
+    
+    .particle-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
     }
-    .sparkle:nth-child(2) {
-        animation-delay: 0.3s;
+    
+    .particle {
+        position: absolute;
+        width: 8px;
+        height: 8px;
+        background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+        border-radius: 50%;
+        box-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6;
+        animation: float 3s ease-in-out infinite, wave 2s ease-in-out infinite;
     }
-    .sparkle:nth-child(3) {
-        animation-delay: 0.6s;
+    
+    .particle:nth-child(1) {
+        left: 20%;
+        animation-delay: 0s;
+    }
+    
+    .particle:nth-child(2) {
+        left: 40%;
+        animation-delay: 0.5s;
+    }
+    
+    .particle:nth-child(3) {
+        left: 60%;
+        animation-delay: 1s;
+    }
+    
+    .particle:nth-child(4) {
+        left: 30%;
+        animation-delay: 1.5s;
+    }
+    
+    .particle:nth-child(5) {
+        left: 50%;
+        animation-delay: 2s;
+    }
+    
+    .particle:nth-child(6) {
+        left: 70%;
+        animation-delay: 2.5s;
     }
     </style>
     """, unsafe_allow_html=True)
