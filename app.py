@@ -69,7 +69,46 @@ st.markdown("""
         height: 20px !important;
     }
     
-    /* Purple radio buttons - CLEAR VISIBILITY */
+    /* Purple radio buttons - COMPLETE OVERRIDE */
+    /* Hide default Streamlit radio button */
+    div[data-baseweb="radio"] > div > div {
+        display: none !important;
+    }
+    
+    /* Custom radio button style */
+    div[data-baseweb="radio"] > div {
+        position: relative !important;
+        padding-left: 28px !important;
+        cursor: pointer !important;
+        background-color: transparent !important;
+    }
+    
+    div[data-baseweb="radio"] > div::before {
+        content: '' !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 18px !important;
+        height: 18px !important;
+        border: 2px solid #8B5CF6 !important;
+        border-radius: 50% !important;
+        background-color: #0E1117 !important;
+    }
+    
+    div[data-baseweb="radio"][data-checked="true"] > div::after {
+        content: '' !important;
+        position: absolute !important;
+        left: 5px !important;
+        top: 50% !important;
+        transform: translateY(-50%) !important;
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        background-color: #FFFFFF !important;
+    }
+    
+    /* Input radio button (fallback) */
     input[type="radio"] {
         appearance: none !important;
         -webkit-appearance: none !important;
@@ -80,6 +119,7 @@ st.markdown("""
         background-color: #0E1117 !important;
         cursor: pointer !important;
         position: relative !important;
+        margin-right: 8px !important;
     }
     
     input[type="radio"]:checked {
@@ -102,33 +142,6 @@ st.markdown("""
     /* Radio button labels */
     div[role="radiogroup"] label {
         color: #E0E0E0 !important;
-    }
-    
-    /* Streamlit radio button container */
-    div[data-baseweb="radio"] > div {
-        background-color: transparent !important;
-    }
-    
-    div[data-baseweb="radio"] > div > div {
-        border-color: #8B5CF6 !important;
-        background-color: #0E1117 !important;
-    }
-    
-    div[data-baseweb="radio"] > div > div[data-checked="true"] {
-        background-color: #0E1117 !important;
-        border-color: #8B5CF6 !important;
-    }
-    
-    div[data-baseweb="radio"] > div > div[data-checked="true"]::after {
-        content: '' !important;
-        position: absolute !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 8px !important;
-        height: 8px !important;
-        border-radius: 50% !important;
-        background-color: #FFFFFF !important;
     }
     
     /* White Generate button with black text + smaller size */
