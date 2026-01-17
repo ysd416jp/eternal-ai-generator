@@ -188,53 +188,41 @@ st.markdown("""
         font-weight: 600 !important;
     }
     
-    /* Radio button styling - LOGICAL selection (small → large when selected) */
-    div[role="radiogroup"] label {
-        position: relative;
-        cursor: pointer;
+    /* Pills styling - dark mode */
+    div[data-testid="stPills"] {
+        background-color: transparent !important;
     }
     
-    /* Radio button circle */
-    div[role="radiogroup"] input[type="radio"] {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 16px;
-        height: 16px;
-        border: 2px solid #666;
-        border-radius: 50%;
-        outline: none;
-        cursor: pointer;
-        position: relative;
-        transition: all 0.2s ease;
+    div[data-testid="stPills"] button {
+        background-color: #1E2329 !important;
+        color: #E0E0E0 !important;
+        border: 1px solid #333 !important;
+        border-radius: 20px !important;
+        padding: 6px 16px !important;
+        font-size: 14px !important;
+        transition: all 0.2s ease !important;
     }
     
-    /* Unchecked state: small circle */
-    div[role="radiogroup"] input[type="radio"]:not(:checked) {
-        width: 14px;
-        height: 14px;
-        border: 2px solid #666;
+    /* Unselected pills - small */
+    div[data-testid="stPills"] button:not([data-selected="true"]) {
+        transform: scale(0.95);
+        opacity: 0.7;
     }
     
-    /* Checked state: large filled circle */
-    div[role="radiogroup"] input[type="radio"]:checked {
-        width: 20px;
-        height: 20px;
-        border: 3px solid #4A90E2;
-        background-color: #4A90E2;
-        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.3);
+    /* Selected pills - large and bright */
+    div[data-testid="stPills"] button[data-selected="true"] {
+        background-color: #4A90E2 !important;
+        color: white !important;
+        border: 2px solid #4A90E2 !important;
+        box-shadow: 0 0 10px rgba(74, 144, 226, 0.5) !important;
+        transform: scale(1.05);
+        font-weight: 600 !important;
     }
     
-    /* Inner dot for checked state */
-    div[role="radiogroup"] input[type="radio"]:checked::after {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: white;
+    /* Hover effect */
+    div[data-testid="stPills"] button:hover {
+        background-color: #2A5A8A !important;
+        transform: scale(1.02);
     }
     
     /* Hide fullscreen button */
@@ -361,17 +349,17 @@ with col1:
         "Flux": "Flux 2 Pro (プロ品質)"
     }
     
-    selected_model_short = st.radio(
-        "label",
+    # Model selection with st.pills() - modern button style
+    selected_model_short = st.pills(
+        "Model",
         options=list(model_options.keys()),
-        horizontal=True,
-        index=0,
+        default="Qwen",
         label_visibility="collapsed"
     )
     
     selected_model_id = model_options[selected_model_short]
     
-    # 3) Aspect Ratio selection (no label, compact)
+    # Aspect Ratio selection with st.pills() - modern button style
     aspect_ratio_options = {
         "Auto": "auto",
         "21:9": "21:9",
@@ -381,11 +369,10 @@ with col1:
         "9:16": "9:16"
     }
     
-    selected_aspect_ratio = st.radio(
-        "aspect_label",
+    selected_aspect_ratio = st.pills(
+        "Aspect Ratio",
         options=list(aspect_ratio_options.keys()),
-        horizontal=True,
-        index=0,
+        default="Auto",
         label_visibility="collapsed"
     )
     
@@ -529,166 +516,35 @@ if generate_btn:
         </div>
         """, unsafe_allow_html=True)
     
-    # Show stylish purple particle effect - 360度ランダムに飛び立つ（原子核の電子）
+    # Show sparkle effect ✨ during generation
     after_placeholder.markdown("""
-    <div style="display: flex; justify-content: center; align-items: center; height: 200px; position: relative; overflow: hidden; background-color: #0E1117;">
-        <div class="atom-container">
-            <div class="nucleus"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
-            <div class="electron"></div>
+    <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+        <div class="sparkle-container">
+            <div class="sparkle">✨</div>
+            <div class="sparkle">✨</div>
+            <div class="sparkle">✨</div>
         </div>
     </div>
     
     <style>
-    @keyframes orbit1 {
-        0% {
-            transform: rotate(0deg) translateX(40px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(40px) rotate(-360deg);
-        }
+    @keyframes sparkle {
+        0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
     }
-    
-    @keyframes orbit2 {
-        0% {
-            transform: rotate(0deg) translateX(60px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(60px) rotate(-360deg);
-        }
+    .sparkle-container {
+        text-align: center;
     }
-    
-    @keyframes orbit3 {
-        0% {
-            transform: rotate(0deg) translateX(80px) rotate(0deg);
-        }
-        100% {
-            transform: rotate(360deg) translateX(80px) rotate(-360deg);
-        }
+    .sparkle {
+        display: inline-block;
+        font-size: 25px;
+        animation: sparkle 1.5s ease-in-out infinite;
+        margin: 0 8px;
     }
-    
-    @keyframes glow {
-        0%, 100% {
-            box-shadow: 0 0 10px #8B5CF6, 0 0 20px #8B5CF6, 0 0 30px #8B5CF650;
-        }
-        50% {
-            box-shadow: 0 0 15px #A78BFA, 0 0 30px #A78BFA, 0 0 45px #A78BFA50;
-        }
+    .sparkle:nth-child(2) {
+        animation-delay: 0.3s;
     }
-    
-    @keyframes nucleusPulse {
-        0%, 100% {
-            transform: scale(1);
-            box-shadow: 0 0 20px #8B5CF6, 0 0 40px #8B5CF6;
-        }
-        50% {
-            transform: scale(1.2);
-            box-shadow: 0 0 30px #A78BFA, 0 0 60px #A78BFA;
-        }
-    }
-    
-    .atom-container {
-        position: relative;
-        width: 200px;
-        height: 200px;
-    }
-    
-    .nucleus {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 12px;
-        height: 12px;
-        margin: -6px 0 0 -6px;
-        background: radial-gradient(circle, #FFFFFF, #A78BFA);
-        border-radius: 50%;
-        animation: nucleusPulse 3s ease-in-out infinite;
-        z-index: 2;
-    }
-    
-    .electron {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 8px;
-        height: 8px;
-        margin: -4px 0 0 -4px;
-        background: radial-gradient(circle, #FFFFFF, #A78BFA, #8B5CF6);
-        border-radius: 50%;
-        animation: glow 2s ease-in-out infinite;
-    }
-    
-    /* 内側の軌道（4個） */
-    .electron:nth-child(2) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0s;
-    }
-    
-    .electron:nth-child(3) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 1.5s, 0.5s;
-    }
-    
-    .electron:nth-child(4) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 3s, 1s;
-    }
-    
-    .electron:nth-child(5) {
-        animation: orbit1 6s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 4.5s, 1.5s;
-    }
-    
-    /* 中間の軌道（4個） */
-    .electron:nth-child(6) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0.2s;
-    }
-    
-    .electron:nth-child(7) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 2s, 0.7s;
-    }
-    
-    .electron:nth-child(8) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 4s, 1.2s;
-    }
-    
-    .electron:nth-child(9) {
-        animation: orbit2 8s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 6s, 1.7s;
-    }
-    
-    /* 外側の軌道（4個） */
-    .electron:nth-child(10) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 0s, 0.3s;
-    }
-    
-    .electron:nth-child(11) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 2.5s, 0.8s;
-    }
-    
-    .electron:nth-child(12) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 5s, 1.3s;
-    }
-    
-    .electron:nth-child(13) {
-        animation: orbit3 10s linear infinite, glow 2s ease-in-out infinite;
-        animation-delay: 7.5s, 1.8s;
+    .sparkle:nth-child(3) {
+        animation-delay: 0.6s;
     }
     </style>
     """, unsafe_allow_html=True)
