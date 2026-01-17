@@ -69,6 +69,31 @@ st.markdown("""
         height: 20px !important;
     }
     
+    /* Purple radio buttons */
+    input[type="radio"]:checked {
+        background-color: #8B5CF6 !important;
+        border-color: #8B5CF6 !important;
+    }
+    
+    input[type="radio"] {
+        border-color: #8B5CF6 !important;
+    }
+    
+    div[role="radiogroup"] label {
+        color: #E0E0E0 !important;
+    }
+    
+    /* Purple Generate button */
+    button[kind="primary"] {
+        background-color: #8B5CF6 !important;
+        border-color: #8B5CF6 !important;
+    }
+    
+    button[kind="primary"]:hover {
+        background-color: #7C3AED !important;
+        border-color: #7C3AED !important;
+    }
+    
     /* Dark mode for inputs */
     .stTextArea textarea, .stTextInput input, .stSelectbox select {
         background-color: #1E2329 !important;
@@ -224,7 +249,7 @@ with col1:
     prompt_text = st.text_area(
         "Prompt (English)", 
         height=80,
-        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 30s, wearing a white coat"
+        value=url_prompt if url_prompt else "A beautiful Japanese woman in her 20s working in an office. Full body shot."
     )
     
     model_options = {
@@ -286,18 +311,19 @@ with col1:
     generate_btn = st.button("Generate", type="primary")
 
 with col2:
-    # 3) Show Before & After structure (Before immediately when uploaded, After with sparkle during generation)
-    if uploaded_file is not None:
-        compare_cols = st.columns(2)
-        with compare_cols[0]:
-            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
-            st.image(uploaded_file, use_column_width=True)
-        with compare_cols[1]:
-            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
-            after_placeholder = st.empty()
-    else:
-        # Text-to-Image: Add spacing to align with Before/After header height
-        st.markdown("<p style='font-size:12px; margin:0; color:transparent;'>_</p>", unsafe_allow_html=True)
+    # Always show Before & After structure (unified layout)
+    compare_cols = st.columns(2)
+    with compare_cols[0]:
+        st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
+        before_placeholder = st.empty()
+        if uploaded_file is not None:
+            # Image-to-Image: Show uploaded image
+            before_placeholder.image(uploaded_file, use_column_width=True)
+        # else: Text-to-Image will show dummy black image when Generate is clicked
+    
+    with compare_cols[1]:
+        st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
+        after_placeholder = st.empty()
 
 # Generation Logic
 if generate_btn:
@@ -390,75 +416,58 @@ if generate_btn:
         'Content-Type': 'application/json'
     }
 
-    # Show sparkle effect during generation
-    sparkle_text_placeholder = st.empty()
-    if uploaded_file is not None:
-        # Image-to-Image: Show sparkle in After placeholder
-        after_placeholder.markdown("""
-        <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
-            <div class="sparkle-container">
-                <div class="sparkle">✨</div>
-                <div class="sparkle">✨</div>
-                <div class="sparkle">✨</div>
-            </div>
-        </div>
+    # Show dummy black image for Text-to-Image (in Before area)
+    if uploaded_file is None:
+        # Calculate aspect ratio dimensions
+        aspect_map = {
+            "21:9": (420, 180),
+            "16:9": (320, 180),
+            "4:3": (240, 180),
+            "1:1": (180, 180),
+            "9:16": (180, 320),
+            "auto": (180, 180)
+        }
+        width, height = aspect_map.get(selected_aspect_value, (180, 180))
         
-        <style>
-        @keyframes sparkle {
-            0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-            50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
-        }
-        .sparkle-container {
-            text-align: center;
-        }
-        .sparkle {
-            display: inline-block;
-            font-size: 25px;
-            animation: sparkle 1.5s ease-in-out infinite;
-            margin: 0 8px;
-        }
-        .sparkle:nth-child(2) {
-            animation-delay: 0.3s;
-        }
-        .sparkle:nth-child(3) {
-            animation-delay: 0.6s;
-        }
-        </style>
+        # Show black dummy image in Before area
+        before_placeholder.markdown(f"""
+        <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+            <div style="width: 100%; aspect-ratio: {width}/{height}; background-color: #000; border-radius: 5px;"></div>
+        </div>
         """, unsafe_allow_html=True)
-    else:
-        # Text-to-Image: Show sparkle in col2
-        with col2:
-            sparkle_text_placeholder.markdown("""
-            <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
-                <div class="sparkle-container">
-                    <div class="sparkle">✨</div>
-                    <div class="sparkle">✨</div>
-                    <div class="sparkle">✨</div>
-                </div>
-            </div>
-            
-            <style>
-            @keyframes sparkle {
-                0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-                50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
-            }
-            .sparkle-container {
-                text-align: center;
-            }
-            .sparkle {
-                display: inline-block;
-                font-size: 25px;
-                animation: sparkle 1.5s ease-in-out infinite;
-                margin: 0 8px;
-            }
-            .sparkle:nth-child(2) {
-                animation-delay: 0.3s;
-            }
-            .sparkle:nth-child(3) {
-                animation-delay: 0.6s;
-            }
-            </style>
-            """, unsafe_allow_html=True)
+    
+    # Show sparkle effect in After area (unified for both modes)
+    after_placeholder.markdown("""
+    <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+        <div class="sparkle-container">
+            <div class="sparkle">✨</div>
+            <div class="sparkle">✨</div>
+            <div class="sparkle">✨</div>
+        </div>
+    </div>
+    
+    <style>
+    @keyframes sparkle {
+        0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+        50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+    }
+    .sparkle-container {
+        text-align: center;
+    }
+    .sparkle {
+        display: inline-block;
+        font-size: 25px;
+        animation: sparkle 1.5s ease-in-out infinite;
+        margin: 0 8px;
+    }
+    .sparkle:nth-child(2) {
+        animation-delay: 0.3s;
+    }
+    .sparkle:nth-child(3) {
+        animation-delay: 0.6s;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     try:
         status_text.text("Sending request...")
@@ -528,37 +537,23 @@ if generate_btn:
                             })
                             
                             # Update After placeholder with generated image + View button overlay
-                            if uploaded_file is not None:
-                                # Image-to-Image: Update After placeholder
-                                after_placeholder.empty()
-                                with after_placeholder.container():
-                                    st.markdown(f"""
-                                    <div style="position: relative;">
-                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
-                                        <div style="position: absolute; top: 5px; right: 5px;">
-                                            <a href="{img_url}" target="_blank" 
-                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
-                                               View
-                                            </a>
-                                        </div>
+                            after_placeholder.empty()
+                            with after_placeholder.container():
+                                st.markdown(f"""
+                                <div style="position: relative;">
+                                    <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
+                                    <div style="position: absolute; top: 5px; right: 5px;">
+                                        <a href="{img_url}" target="_blank" 
+                                           style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
+                                           View
+                                        </a>
                                     </div>
-                                    """, unsafe_allow_html=True)
-                            else:
-                                # Text-to-Image: Clear sparkle and display at top of col2
-                                sparkle_text_placeholder.empty()
-                                with col2:
-                                    st.balloons()
-                                    st.markdown(f"""
-                                    <div style="position: relative;">
-                                        <img src="{img_url}" style="width: 100%; border-radius: 5px;" />
-                                        <div style="position: absolute; top: 5px; right: 5px;">
-                                            <a href="{img_url}" target="_blank" 
-                                               style="background: rgba(0,0,0,0.8); color: white; padding: 4px 8px; border-radius: 3px; text-decoration: none; font-size: 11px;">
-                                               View
-                                            </a>
-                                        </div>
-                                    </div>
-                                    """, unsafe_allow_html=True)
+                                </div>
+                                """, unsafe_allow_html=True)
+                            
+                            # Balloons for Text-to-Image only
+                            if uploaded_file is None:
+                                st.balloons()
                             
                             # Caption with size and resolution (no download button)
                             with col2:
