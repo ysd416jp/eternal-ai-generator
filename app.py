@@ -74,6 +74,7 @@ st.markdown("""
         background-color: #1E2329 !important;
         color: #E0E0E0 !important;
         border: 1px solid #333 !important;
+        caret-color: #E0E0E0 !important;
     }
     
     /* Dark mode for selectbox dropdown */
@@ -101,8 +102,19 @@ st.markdown("""
         color: #E0E0E0 !important;
     }
     
-    /* Dark mode for all text */
-    p, span, div, label {
+    /* Labels with dark text for white backgrounds */
+    label {
+        background-color: transparent !important;
+        color: #333 !important;
+    }
+    
+    /* Fullscreen button opens in new tab */
+    button[title="View fullscreen"] > svg {
+        pointer-events: none;
+    }
+    
+    /* Dark mode for all text (except labels) */
+    p, span, div {
         color: #E0E0E0 !important;
     }
     
@@ -145,16 +157,30 @@ with st.sidebar:
             unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
             
             # Escape prompt for JavaScript (properly)
-            escaped_prompt = img_data['prompt'].replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            escaped_prompt = img_data['prompt'].replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n').replace('\r', '')
+            
+            # Unique button IDs
+            button_id = f"copy_btn_{unique_id}"
+            dl_id = f"dl_btn_{unique_id}"
             
             # Image with overlay buttons (View, DL, Copy Prompt)
             st.markdown(f"""
             <div style="position: relative; margin-bottom: 5px;">
-                <img src="{img_data['url']}" style="width: 100%; border-radius: 5px;" />
+                <a href="{img_data['url']}" target="_blank">
+                    <img src="{img_data['url']}" style="width: 100%; border-radius: 5px; cursor: pointer;" />
+                </a>
                 <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 3px;">
-                    <a href="{img_data['url']}" target="_blank" style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">View</a>
-                    <a href="{img_data['url']}" download="generated_image.jpg" style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">DL</a>
-                    <button onclick="navigator.clipboard.writeText('{escaped_prompt}'); alert('Prompt copied!');"
+                    <a href="{img_data['url']}" target="_blank" 
+                       style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">
+                       View
+                    </a>
+                    <a id="{dl_id}" href="javascript:void(0);" 
+                       onclick="var link = document.createElement('a'); link.href = '{img_data['url']}'; link.download = 'generated_image.png'; document.body.appendChild(link); link.click(); document.body.removeChild(link);"
+                       style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px; cursor: pointer;">
+                       DL
+                    </a>
+                    <button id="{button_id}" 
+                            onclick="navigator.clipboard.writeText('{escaped_prompt}').then(() => alert('Prompt copied!')).catch(err => {{ var textarea = document.createElement('textarea'); textarea.value = '{escaped_prompt}'; textarea.style.position = 'fixed'; textarea.style.opacity = '0'; document.body.appendChild(textarea); textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea); alert('Prompt copied!'); }});"
                             style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; border: none; cursor: pointer; font-size: 9px;"
                             title="Copy full prompt">📋</button>
                 </div>
@@ -270,45 +296,52 @@ with col1:
     generate_btn = st.button("Generate", type="primary")
 
 with col2:
-    # Show Before (Reference Image) when uploaded (no display here, only in Before & After)
-    pass
+    # 3) Show Before & After structure (Before immediately when uploaded, After with sparkle during generation)
+    if uploaded_file is not None:
+        compare_cols = st.columns(2)
+        with compare_cols[0]:
+            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>Before</p>", unsafe_allow_html=True)
+            st.image(uploaded_file, use_column_width=True)
+        with compare_cols[1]:
+            st.markdown("<p style='font-size:12px; margin:0; color:#E0E0E0;'>After</p>", unsafe_allow_html=True)
+            after_placeholder = st.empty()
+            # Sparkle placeholder for After
+            after_placeholder.markdown("""
+            <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
+                <div class="sparkle-container">
+                    <div class="sparkle">✨</div>
+                    <div class="sparkle">✨</div>
+                    <div class="sparkle">✨</div>
+                </div>
+            </div>
+            
+            <style>
+            @keyframes sparkle {
+                0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+                50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
+            }
+            .sparkle-container {
+                text-align: center;
+            }
+            .sparkle {
+                display: inline-block;
+                font-size: 25px;
+                animation: sparkle 1.5s ease-in-out infinite;
+                margin: 0 8px;
+            }
+            .sparkle:nth-child(2) {
+                animation-delay: 0.3s;
+            }
+            .sparkle:nth-child(3) {
+                animation-delay: 0.6s;
+            }
+            </style>
+            """, unsafe_allow_html=True)
 
 # Generation Logic
 if generate_btn:
-    # 7) Sparkle effect during generation (no text label)
-    with col2:
-        sparkle_placeholder = st.empty()
-        sparkle_placeholder.markdown("""
-        <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
-            <div class="sparkle-container">
-                <div class="sparkle">✨</div>
-                <div class="sparkle">✨</div>
-                <div class="sparkle">✨</div>
-            </div>
-        </div>
-        
-        <style>
-        @keyframes sparkle {
-            0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
-            50% { opacity: 1; transform: scale(1.2) rotate(180deg); }
-        }
-        .sparkle-container {
-            text-align: center;
-        }
-        .sparkle {
-            display: inline-block;
-            font-size: 25px;
-            animation: sparkle 1.5s ease-in-out infinite;
-            margin: 0 8px;
-        }
-        .sparkle:nth-child(2) {
-            animation-delay: 0.3s;
-        }
-        .sparkle:nth-child(3) {
-            animation-delay: 0.6s;
-        }
-        </style>
-        """, unsafe_allow_html=True)
+    # Move debug info to bottom
+    debug_placeholder = st.empty()
     
     status_text = st.empty()
     
@@ -334,10 +367,7 @@ if generate_btn:
         
         final_prompt = f"{final_prompt}, {orientation_desc}, aspect ratio {selected_aspect_value}, {selected_aspect_value} format"
     
-    # Debug: Show final prompt in col2
-    with col2:
-        with st.expander("Final Prompt (Debug)", expanded=True):
-            st.text_area("Final prompt sent to API", value=final_prompt, height=100, disabled=True)
+    # No debug info here - moved to bottom
     
     # Convert uploaded image to Base64 (if exists)
     image_base64 = None
@@ -435,42 +465,16 @@ if generate_btn:
                                   res_data.get("output_url"))
                         
                         if img_url:
-                            # Get image metadata and adjust aspect ratio if needed
+                            # Get image metadata (NO aspect ratio adjustment)
                             try:
                                 img_response = requests.get(img_url)
                                 img_size_kb = len(img_response.content) / 1024
                                 img_pil = Image.open(BytesIO(img_response.content))
-                                
-                                # 5) Adjust aspect ratio if specified and different from output
-                                if selected_aspect_value != "auto" and uploaded_file is not None:
-                                    # Parse target aspect ratio
-                                    target_ratio_parts = selected_aspect_value.split(":")
-                                    target_ratio = float(target_ratio_parts[0]) / float(target_ratio_parts[1])
-                                    
-                                    # Current aspect ratio
-                                    current_ratio = img_pil.width / img_pil.height
-                                    
-                                    # If ratios differ significantly (more than 5%), adjust
-                                    if abs(current_ratio - target_ratio) > 0.05:
-                                        if target_ratio > current_ratio:
-                                            # Need to stretch horizontally (or crop vertically)
-                                            new_width = int(img_pil.height * target_ratio)
-                                            img_pil = img_pil.resize((new_width, img_pil.height), Image.Resampling.LANCZOS)
-                                        else:
-                                            # Need to stretch vertically (or crop horizontally)
-                                            new_height = int(img_pil.width / target_ratio)
-                                            img_pil = img_pil.resize((img_pil.width, new_height), Image.Resampling.LANCZOS)
-                                        
-                                        # Save adjusted image to bytes
-                                        buffered = BytesIO()
-                                        img_pil.save(buffered, format='PNG')
-                                        img_bytes = buffered.getvalue()
-                                        
-                                        # Update img_url to use adjusted image
-                                        # (For display purposes, we'll use the PIL image directly)
-                                        status_text.text(f"Adjusted aspect ratio from {current_ratio:.2f} to {target_ratio:.2f}")
-                                
                                 img_dimensions = f"{img_pil.width}x{img_pil.height}"
+                            except Exception as e:
+                                img_size_kb = 0
+                                img_dimensions = "Unknown"
+                                status_text.text(f"Error loading image: {e}")
                             except Exception as e:
                                 img_size_kb = 0
                                 img_dimensions = "Unknown"
@@ -488,41 +492,36 @@ if generate_btn:
                                 "reference_image": uploaded_file.name if uploaded_file else None
                             })
                             
-                            # Clear sparkle effect
-                            sparkle_placeholder.empty()
+                            # Update After placeholder with generated image
+                            if uploaded_file is not None:
+                                # Image-to-Image: Update After placeholder
+                                after_placeholder.empty()
+                                with after_placeholder.container():
+                                    st.image(img_url, use_column_width=True)
+                            else:
+                                # Text-to-Image: Display at top of col2
+                                with col2:
+                                    st.balloons()
+                                    st.image(img_url, use_column_width=True)
                             
+                            # Download button with JavaScript forced download
                             with col2:
-                                st.balloons()
-                                st.success("Generation complete!")
-                                
-                                # Show reference image and generated image side by side (horizontal)
-                                if uploaded_file is not None:
-                                    st.markdown("### Before & After")
-                                    compare_cols = st.columns(2)
-                                    with compare_cols[0]:
-                                        st.markdown("**Before**")
-                                        st.image(uploaded_file, use_column_width=True)
-                                    with compare_cols[1]:
-                                        st.markdown("**After**")
-                                        # Use adjusted PIL image if available, otherwise URL
-                                        if img_pil is not None:
-                                            st.image(img_pil, use_column_width=True)
-                                        else:
-                                            st.image(img_url, use_column_width=True)
-                                else:
-                                    # Use adjusted PIL image if available, otherwise URL
-                                    if img_pil is not None:
-                                        st.image(img_pil, caption="Generated Result", use_column_width=True)
-                                    else:
-                                        st.image(img_url, caption="Generated Result", use_column_width=True)
-                                
-                                st.markdown(f"[Download Image]({img_url})")
+                                st.markdown(f"""
+                                <a href="javascript:void(0);" 
+                                   onclick="var link = document.createElement('a'); link.href = '{img_url}'; link.download = 'generated_image.png'; document.body.appendChild(link); link.click(); document.body.removeChild(link);"
+                                   style="display: inline-block; padding: 8px 16px; background-color: #4A90E2; color: white; 
+                                          text-decoration: none; border-radius: 5px; margin-top: 10px; cursor: pointer;">
+                                    📥 Download Image
+                                </a>
+                                """, unsafe_allow_html=True)
                                 st.caption(f"Size: {img_size_kb:.1f} KB | Resolution: {img_dimensions}")
                                 
                                 # Debug info at the bottom (collapsible)
                                 with st.expander("Debug Info (Click to expand)", expanded=False):
+                                    st.info("Final Prompt:")
+                                    st.text_area("", value=final_prompt, height=100, disabled=True)
                                     st.info("Request Details:")
-                                    st.json({"request_id": request_id, "payload": payload})
+                                    st.json({"request_id": request_id, "model": selected_model_short, "aspect_ratio": selected_aspect_value})
                                     st.info("Response:")
                                     st.json(res_data)
                         else:
