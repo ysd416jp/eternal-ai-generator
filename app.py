@@ -37,7 +37,7 @@ st.markdown("""
     /* Force Dark Mode */
     .stApp {
         background-color: #0E1117 !important;
-        color: #FAFAFA !important;
+        color: #E0E0E0 !important;
     }
     
     /* Reduce top padding */
@@ -47,10 +47,15 @@ st.markdown("""
         background-color: #0E1117 !important;
     }
     
+    /* Sidebar dark */
+    section[data-testid="stSidebar"] {
+        background-color: #0E1117 !important;
+    }
+    
     /* Compact sections */
     .stMarkdown {
         margin-bottom: 0.5rem;
-        color: #FAFAFA !important;
+        color: #E0E0E0 !important;
     }
     
     /* Larger slider handle */
@@ -62,12 +67,30 @@ st.markdown("""
     /* Dark mode for inputs */
     .stTextArea textarea, .stTextInput input, .stSelectbox select {
         background-color: #1E2329 !important;
-        color: #FAFAFA !important;
+        color: #E0E0E0 !important;
+        border: 1px solid #333 !important;
     }
     
     /* Dark mode for file uploader */
     .stFileUploader {
         background-color: #1E2329 !important;
+        border: 1px solid #333 !important;
+    }
+    
+    /* Dark mode for expander */
+    .streamlit-expanderHeader {
+        background-color: #1E2329 !important;
+        color: #E0E0E0 !important;
+    }
+    
+    /* Dark mode for all text */
+    p, span, div, label {
+        color: #E0E0E0 !important;
+    }
+    
+    /* Headers */
+    h1, h2, h3, h4, h5, h6 {
+        color: #FAFAFA !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -98,14 +121,17 @@ with st.sidebar:
             # Unique ID for each image
             unique_id = f"img_{idx}_{img_data['timestamp'].replace(' ', '_').replace(':', '_')}"
             
+            # Escape prompt for JavaScript (properly)
+            escaped_prompt = img_data['prompt'].replace('\\', '\\\\').replace("'", "\\'").replace('"', '\\"').replace('\n', '\\n')
+            
             # Image with overlay buttons (View, DL, Copy Prompt)
             st.markdown(f"""
             <div style="position: relative; margin-bottom: 5px;">
                 <img src="{img_data['url']}" style="width: 100%; border-radius: 5px;" />
                 <div style="position: absolute; top: 5px; right: 5px; display: flex; gap: 3px;">
                     <a href="{img_data['url']}" target="_blank" style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">View</a>
-                    <a href="{img_data['url']}" download style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">DL</a>
-                    <button onclick="navigator.clipboard.writeText('{img_data['prompt'].replace("'", "\\'")}')"
+                    <a href="{img_data['url']}" download="generated_image.jpg" style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; text-decoration: none; font-size: 9px;">DL</a>
+                    <button onclick="navigator.clipboard.writeText('{escaped_prompt}'); alert('Prompt copied!');"
                             style="background: rgba(0,0,0,0.8); color: white; padding: 2px 6px; border-radius: 3px; border: none; cursor: pointer; font-size: 9px;"
                             title="Copy full prompt">📋</button>
                 </div>
@@ -221,16 +247,14 @@ with col1:
     generate_btn = st.button("Generate", type="primary")
 
 with col2:
-    # Show Before (Reference Image) when uploaded
+    # Show Before (Reference Image) when uploaded (no text label)
     if uploaded_file is not None:
-        st.markdown("### Before (Reference)")
         st.image(uploaded_file, use_column_width=True)
 
 # Generation Logic
 if generate_btn:
-    # 7) Sparkle effect during generation (smaller size)
+    # 7) Sparkle effect during generation (no text label)
     with col2:
-        st.markdown("### Generating...")
         sparkle_placeholder = st.empty()
         sparkle_placeholder.markdown("""
         <div style="display: flex; justify-content: center; align-items: center; height: 200px;">
@@ -238,7 +262,6 @@ if generate_btn:
                 <div class="sparkle">✨</div>
                 <div class="sparkle">✨</div>
                 <div class="sparkle">✨</div>
-                <p style="color: #888; font-size: 12px; margin-top: 10px;">Creating your masterpiece...</p>
             </div>
         </div>
         
@@ -277,9 +300,17 @@ if generate_btn:
     if selected_style != "None (Custom)" and style_prompt:
         final_prompt = f"{prompt_text}, {style_prompt}"
     
-    # Add aspect ratio to prompt (if not Auto)
+    # Add aspect ratio to prompt (if not Auto) - stronger emphasis
     if selected_aspect_value != "auto":
-        final_prompt = f"{final_prompt}, aspect ratio {selected_aspect_value}"
+        # Determine orientation description
+        if selected_aspect_value in ["9:16", "3:4"]:
+            orientation_desc = "vertical portrait orientation"
+        elif selected_aspect_value in ["21:9", "16:9", "4:3"]:
+            orientation_desc = "horizontal landscape orientation"
+        else:  # 1:1
+            orientation_desc = "square format"
+        
+        final_prompt = f"{final_prompt}, {orientation_desc}, aspect ratio {selected_aspect_value}, {selected_aspect_value} format"
     
     # Debug: Show final prompt in col2
     with col2:
