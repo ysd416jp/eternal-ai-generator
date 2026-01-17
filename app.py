@@ -69,57 +69,63 @@ st.markdown("""
         height: 20px !important;
     }
     
-    /* Purple radio buttons - COMPLETE OVERRIDE */
-    /* Hide default Streamlit radio button */
-    div[data-baseweb="radio"] > div > div {
+    /* Purple radio buttons - SIMPLE & CLEAN */
+    /* Streamlit radio button wrapper */
+    div[data-baseweb="radio"] {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    
+    /* Hide ALL inner elements */
+    div[data-baseweb="radio"] > div > div,
+    div[data-baseweb="radio"] > div > svg {
         display: none !important;
     }
     
-    /* Custom radio button style */
+    /* Radio button container */
     div[data-baseweb="radio"] > div {
         position: relative !important;
-        padding-left: 28px !important;
-        cursor: pointer !important;
-        background-color: transparent !important;
-    }
-    
-    div[data-baseweb="radio"] > div::before {
-        content: '' !important;
-        position: absolute !important;
-        left: 0 !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
         width: 18px !important;
         height: 18px !important;
+        min-width: 18px !important;
+        padding: 0 !important;
+        margin: 0 !important;
         border: 2px solid #8B5CF6 !important;
         border-radius: 50% !important;
         background-color: #0E1117 !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
     }
     
+    /* Checked state - white dot in center */
     div[data-baseweb="radio"][data-checked="true"] > div::after {
         content: '' !important;
         position: absolute !important;
-        left: 5px !important;
         top: 50% !important;
-        transform: translateY(-50%) !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
         width: 8px !important;
         height: 8px !important;
         border-radius: 50% !important;
         background-color: #FFFFFF !important;
     }
     
-    /* Input radio button (fallback) */
+    /* Input radio button (fallback for native inputs) */
     input[type="radio"] {
         appearance: none !important;
         -webkit-appearance: none !important;
         width: 18px !important;
         height: 18px !important;
+        min-width: 18px !important;
         border: 2px solid #8B5CF6 !important;
         border-radius: 50% !important;
         background-color: #0E1117 !important;
         cursor: pointer !important;
         position: relative !important;
-        margin-right: 8px !important;
+        margin: 0 8px 0 0 !important;
+        padding: 0 !important;
+        flex-shrink: 0 !important;
     }
     
     input[type="radio"]:checked {
@@ -142,6 +148,14 @@ st.markdown("""
     /* Radio button labels */
     div[role="radiogroup"] label {
         color: #E0E0E0 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+    }
+    
+    /* Remove any extra spacing */
+    div[role="radiogroup"] {
+        gap: 12px !important;
     }
     
     /* White Generate button with black text + smaller size */
