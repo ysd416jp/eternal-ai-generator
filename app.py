@@ -40,6 +40,11 @@ st.markdown("""
         color: #E0E0E0 !important;
     }
     
+    /* Header dark */
+    header[data-testid="stHeader"] {
+        background-color: #0E1117 !important;
+    }
+    
     /* Reduce top padding */
     .block-container {
         padding-top: 1rem;
@@ -71,10 +76,23 @@ st.markdown("""
         border: 1px solid #333 !important;
     }
     
+    /* Dark mode for selectbox dropdown */
+    div[data-baseweb="select"] {
+        background-color: #1E2329 !important;
+    }
+    
     /* Dark mode for file uploader */
     .stFileUploader {
         background-color: #1E2329 !important;
         border: 1px solid #333 !important;
+    }
+    
+    div[data-testid="stFileUploader"] {
+        background-color: #1E2329 !important;
+    }
+    
+    div[data-testid="stFileUploader"] > div {
+        background-color: #1E2329 !important;
     }
     
     /* Dark mode for expander */
@@ -92,6 +110,11 @@ st.markdown("""
     h1, h2, h3, h4, h5, h6 {
         color: #FAFAFA !important;
     }
+    
+    /* Labels without background */
+    label {
+        background-color: transparent !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -103,7 +126,7 @@ query_params = st.query_params
 url_prompt = query_params.get("prompt", None)
 
 if url_prompt:
-    st.success("Prompt received from translation site")
+    pass  # プロンプト入力済みで分かるので通知不要
 
 api_key = load_api_key()
 if not api_key:
@@ -247,9 +270,8 @@ with col1:
     generate_btn = st.button("Generate", type="primary")
 
 with col2:
-    # Show Before (Reference Image) when uploaded (no text label)
-    if uploaded_file is not None:
-        st.image(uploaded_file, use_column_width=True)
+    # Show Before (Reference Image) when uploaded (no display here, only in Before & After)
+    pass
 
 # Generation Logic
 if generate_btn:
@@ -413,15 +435,47 @@ if generate_btn:
                                   res_data.get("output_url"))
                         
                         if img_url:
-                            # Get image metadata
+                            # Get image metadata and adjust aspect ratio if needed
                             try:
                                 img_response = requests.get(img_url)
                                 img_size_kb = len(img_response.content) / 1024
                                 img_pil = Image.open(BytesIO(img_response.content))
+                                
+                                # 5) Adjust aspect ratio if specified and different from output
+                                if selected_aspect_value != "auto" and uploaded_file is not None:
+                                    # Parse target aspect ratio
+                                    target_ratio_parts = selected_aspect_value.split(":")
+                                    target_ratio = float(target_ratio_parts[0]) / float(target_ratio_parts[1])
+                                    
+                                    # Current aspect ratio
+                                    current_ratio = img_pil.width / img_pil.height
+                                    
+                                    # If ratios differ significantly (more than 5%), adjust
+                                    if abs(current_ratio - target_ratio) > 0.05:
+                                        if target_ratio > current_ratio:
+                                            # Need to stretch horizontally (or crop vertically)
+                                            new_width = int(img_pil.height * target_ratio)
+                                            img_pil = img_pil.resize((new_width, img_pil.height), Image.Resampling.LANCZOS)
+                                        else:
+                                            # Need to stretch vertically (or crop horizontally)
+                                            new_height = int(img_pil.width / target_ratio)
+                                            img_pil = img_pil.resize((img_pil.width, new_height), Image.Resampling.LANCZOS)
+                                        
+                                        # Save adjusted image to bytes
+                                        buffered = BytesIO()
+                                        img_pil.save(buffered, format='PNG')
+                                        img_bytes = buffered.getvalue()
+                                        
+                                        # Update img_url to use adjusted image
+                                        # (For display purposes, we'll use the PIL image directly)
+                                        status_text.text(f"Adjusted aspect ratio from {current_ratio:.2f} to {target_ratio:.2f}")
+                                
                                 img_dimensions = f"{img_pil.width}x{img_pil.height}"
-                            except:
+                            except Exception as e:
                                 img_size_kb = 0
                                 img_dimensions = "Unknown"
+                                img_pil = None
+                                status_text.text(f"Error adjusting image: {e}")
                             
                             # 5) Add to history with full prompt (final_prompt)
                             st.session_state.generated_images.append({
@@ -450,9 +504,17 @@ if generate_btn:
                                         st.image(uploaded_file, use_column_width=True)
                                     with compare_cols[1]:
                                         st.markdown("**After**")
-                                        st.image(img_url, use_column_width=True)
+                                        # Use adjusted PIL image if available, otherwise URL
+                                        if img_pil is not None:
+                                            st.image(img_pil, use_column_width=True)
+                                        else:
+                                            st.image(img_url, use_column_width=True)
                                 else:
-                                    st.image(img_url, caption="Generated Result", use_column_width=True)
+                                    # Use adjusted PIL image if available, otherwise URL
+                                    if img_pil is not None:
+                                        st.image(img_pil, caption="Generated Result", use_column_width=True)
+                                    else:
+                                        st.image(img_url, caption="Generated Result", use_column_width=True)
                                 
                                 st.markdown(f"[Download Image]({img_url})")
                                 st.caption(f"Size: {img_size_kb:.1f} KB | Resolution: {img_dimensions}")
